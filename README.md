@@ -1,2 +1,2 @@
 # Marvin
-Data Governance Solution - Automated, Generic, Self-documenting from Anatella/TIMi
+Data Governance Solution - Automated, Agnostic (and Self-documenting if used from Anatella/TIMi)
