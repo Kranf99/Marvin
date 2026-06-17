@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ANATELLA version='4.18'>
+<GlobalParameters wDirLoc='1' dataDirWrite='F:/soft/_Marvin/db'>
+</GlobalParameters>
+<WorkingSpace zoom='1.5' x='-769' y='24'>AAAA/wAAAAD9AAAAAgAAAAEAAAEPAAABCPwCAAAAAfsAAAAcAEEAbABsAEEAYwB0AGkAbwBuAHMARABvAGMAawEAAABeAAABCAAAAHgA////AAAAAwAABUMAAAHQ/AEAAAAC+wAAACgAQQBjAHQAaQBvAG4AUAByAG8AcABlAHIAdABpAGUAcwBEAG8AYwBrAQAAAAAAAAMbAAADGwD////8AAADIQAAAiIAAAIiAP////oAAAABAQAAAAL7AAAADgBMAG8AZwBEAG8AYwBrAQAAAAD/////AAAAhQD////7AAAAGgBEAGEAdABhAFQAYQBiAGwAZQBEAG8AYwBrAQAAAAD/////AAACIgD///8AAAQuAAABCAAAAAQAAAAEAAAACAAAAAj8AAAAAQAAAAIAAAADAAAAFgBtAGEAaQBuAFQAbwBvAGwAQgBhAHIBAAAAAP////8AAAAAAAAAAAAAABYAdABlAHgAdABUAG8AbwBsAEIAYQByAQAAA7L/////AAAAAAAAAAAAAAAeAGcAcgBvAHUAcABCAG8AeABUAG8AbwBsAEIAYQByAQAABOr/////AAAAAAAAAAA=</WorkingSpace>
+<ACTIONS>
+<readSQLite keyHD='177681201216552641' module='DBConnectors' idx='1' x='-336' y='108' fileName=':/MarvinDB.sqlite' spatialite='0'>
+<sql>
+SELECT a.*, la.liketype from Assets a LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser=1 where 1=1 AND category=2 order by a.dateUpdated asc LIMIT 81 OFFSET 0
+</sql>
+</readSQLite>
+<readSQLite keyHD='177814933316416025' module='DBConnectors' idx='2' x='-156' y='108' fileName=':/MarvinDB_old.sqlite' spatialite='0'>
+<sql>
+select * from columns
+</sql>
+</readSQLite>
+<writeSQLite module='DBConnectors' idx='4' x='-24' y='108' dataBaseMode='1' tableMode='4' fileName=':/MarvinDB.sqlite' table='Columns'>
+  <keyCols></keyCols>
+  <updateCols></updateCols>
+</writeSQLite>
+<readSQLite keyHD='177814940616416686' module='DBConnectors' idx='5' x='-24' y='12' fileName=':/MarvinDB.sqlite' spatialite='0'>
+<sql>
+select * from Columns
+</sql>
+</readSQLite>
+</ACTIONS>
+<CONNECTORS>
+<Connection idxSrc='2' idxDest='4'/>
+</CONNECTORS>
+</ANATELLA>
