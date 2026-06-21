@@ -85,7 +85,7 @@ function getFieldChanges($r)
     if (isset($r['schema'])&&$r['schema']&&($r['schema']!=$r['schema_old']))
         $table.='<tr class="tr-asset"><td>Schema</td><td>'.htmlspecialchars($r['schema_old']).'</td><td>'.htmlspecialchars($r['schema']).'</td></tr>';
 
-    if ($r['idserver']&&($r['idserver']!=$r['idserver_old'])) 
+    if (isset($r['idserver'])&&$r['idserver']&&($r['idserver']!=$r['idserver_old'])) 
         $table.='<tr class="tr-asset"><td>Server</td><td>'.htmlspecialchars($r['server_old']).'</td><td>'.htmlspecialchars($r['server']).'</td></tr>';
     return $table;
 }
@@ -98,6 +98,9 @@ function getColumnChanges($r)
         $t[0]='<td>Name</td><td>'.htmlspecialchars($r['cname_old']).'</td><td>'.htmlspecialchars($r['cname']).'</td>';
         $nc++;
     }
+
+//    echo 'sd='.$r['cshortDescription']."<br>";
+//    echo 'sdo='.$r['cshortDescription_old']."<br>";
 
     if ($r['cshortDescription']&&($r['cshortDescription']!=$r['cshortDescription_old'])) 
     {
@@ -129,57 +132,94 @@ $tt=(int)$rowAsset['taskType'];
 $txt='';
 if (($tt>500)&&($rowAsset['changeId']!=null))
 {
-    $sql=' SELECT a.*, c.changeId as cchangeId, c.name as cname,c.name_old as cname_old, '.
-        ' c.shortDescription as cshortDescription, c.shortDescription_old as cshortDescription_old,'.
-        ' c.status as cstatus, c.status_old as cstatus_old,'.
-        ' c.tags as ctags, c.tags_old as ctags_old,'.
-        ' u.name as uname, u.email as uemail FROM AssetsChanges a'.
-        ' LEFT JOIN ';
-    if (($tt==510)||($tt==610))
-        $sql.='KPIChanges';
-    else if (($tt==520)||($tt==620))
-        $sql.='columnsChanges';
-    $sql.=' c ON c.assetChangeId=a.changeId'.
-            ' LEFT JOIN dbu.users u on u.id=a.changedByUserId'.
-            ' WHERE a.changeId=:changeID';
-
-    $stmt = $db->prepare($sql);
-    $stmt->bindValue(':changeID',$rowAsset['changeId']);
-    $results=$stmt->execute();
-    $rr=$results->fetchArray(SQLITE3_ASSOC);
-
-    if ($rr)
+    if ($rowAsset['changeTable']=='Assets')
     {
-        $txt='<h1 style="font-size:22px;color:#1e3a8a;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">Report: '.htmlspecialchars($rr['name_old']).' changed</h1>';
-        if ($tt<600)
-        {
-            $txt.='<div class="status-uncertified" style="padding:12px 16px;border-radius:6px;margin-bottom:16px;">Your input is required to approve or dismiss the proposed changes.</div>';
-        } else
-        {
-            $txt.='<div class="status-request-access" style="padding:12px 16px;border-radius:6px;margin-bottom:16px;">This is a notification for your information.</div>';
-        }
-        $txt.='<p style="margin-bottom:20px;color:#64748b;font-size:14px;">Changed by <strong style="color:#374151;">'.htmlspecialchars($rr['uname']).'</strong>'.
-                ' ('.htmlspecialchars($rr['uemail']).') on '.$rr['updatedAt'].'.</p>';
+        $sql=' SELECT a.*, c.changeId as cchangeId, c.name as cname,c.name_old as cname_old, '.
+            ' c.shortDescription as cshortDescription, c.shortDescription_old as cshortDescription_old,'.
+            ' c.status as cstatus, c.status_old as cstatus_old,'.
+            ' c.tags as ctags, c.tags_old as ctags_old,'.
+            ' u.name as uname, u.email as uemail FROM AssetsChanges a ';
+        if (($tt==510)||($tt==610))
+            $sql.=' LEFT JOIN KPIChanges c ON c.fromAssetChangeId=a.changeId';
+        else if (($tt==520)||($tt==620))
+            $sql.=' LEFT JOIN columnsChanges c ON c.fromAssetChangeId=a.changeId';
+        $sql.=' LEFT JOIN dbu.users u on u.id=a.changedByUserId'.
+            ' WHERE a.changeId=:changeID';
+    //    echo $sql;
+    //    echo $rowAsset['changeId'];
 
-        $table=getFieldChanges($rr);
-        if ($table!='')
-        {
-            $txt.='<h2 style="font-size:16px;color:#475569;margin:20px 0 10px;">Changed field(s) inside Report:</h2>'.
-                    '<table class="table-asset table-view"><thead class="thead-asset"><tr><th class="th-asset">Field</th><th class="th-asset">Old Value</th><th class="th-asset">New Value</th></tr></thead><tbody>'."\n".
-                    $table.'</tbody></table>';
-        }
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue(':changeID',$rowAsset['changeId']);
+        $results=$stmt->execute();
+        $rr=$results->fetchArray(SQLITE3_ASSOC);
 
-        $ctable='';
-        while ($rr)
+        if ($rr)
         {
-            $ctable.=getColumnChanges($rr);
-            $rr=$results->fetchArray(SQLITE3_ASSOC);
+            $txt='<h1 style="font-size:22px;color:#1e3a8a;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">Report: '.htmlspecialchars($rr['name_old']).' changed</h1>';
+            if ($tt<600)
+            {
+                $txt.='<div class="status-uncertified" style="padding:12px 16px;border-radius:6px;margin-bottom:16px;">Your input is required to approve or dismiss the proposed changes.</div>';
+            } else
+            {
+                $txt.='<div class="status-request-access" style="padding:12px 16px;border-radius:6px;margin-bottom:16px;">This is a notification for your information.</div>';
+            }
+            $txt.='<p style="margin-bottom:20px;color:#64748b;font-size:14px;">Changed by <strong style="color:#374151;">'.htmlspecialchars($rr['uname']).'</strong>'.
+                    ' ('.htmlspecialchars($rr['uemail']).') on '.$rr['updatedAt'].'.</p>';
+
+            $table=getFieldChanges($rr);
+            if ($table!='')
+            {
+                $txt.='<h2 style="font-size:16px;color:#475569;margin:20px 0 10px;">Changed field(s) inside Report:</h2>'.
+                        '<table class="table-asset table-view"><thead class="thead-asset"><tr><th class="th-asset">Field</th><th class="th-asset">Old Value</th><th class="th-asset">New Value</th></tr></thead><tbody>'."\n".
+                        $table.'</tbody></table>';
+            }
+
+            $ctable='';
+            while ($rr)
+            {
+                $ctable.=getColumnChanges($rr);
+                $rr=$results->fetchArray(SQLITE3_ASSOC);
+            }
+            if ($ctable!='')
+            {
+                $txt.='<h2 style="font-size:16px;color:#475569;margin:20px 0 10px;">Changed KPI definition(s):</h2>'.
+                        '<table class="table-asset table-view"><thead class="thead-asset"><tr><th class="th-asset">Column Name</th><th class="th-asset">Field</th><th class="th-asset">Old Value</th><th class="th-asset">New Value</th></tr></thead><tbody>'."\n".
+                        $ctable.'</tbody></table>';
+            }
         }
-        if ($ctable!='')
+    } else if ($rowAsset['changeTable']=='Glossary')
+    {
+        $sql=' SELECT a.*,u.name as uname, u.email as uemail FROM GlossaryChanges a ';
+        $sql.=' LEFT JOIN dbu.users u on u.id=a.changedByUserId'.
+            ' WHERE a.changeId=:changeID';
+    //    echo $sql;
+    //    echo $rowAsset['changeId'];
+
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue(':changeID',$rowAsset['changeId']);
+        $results=$stmt->execute();
+        $rr=$results->fetchArray(SQLITE3_ASSOC);
+
+        if ($rr)
         {
-            $txt.='<h2 style="font-size:16px;color:#475569;margin:20px 0 10px;">Changed KPI definition(s):</h2>'.
-                    '<table class="table-asset table-view"><thead class="thead-asset"><tr><th class="th-asset">Column Name</th><th class="th-asset">Field</th><th class="th-asset">Old Value</th><th class="th-asset">New Value</th></tr></thead><tbody>'."\n".
-                    $ctable.'</tbody></table>';
+            $txt='<h1 style="font-size:22px;color:#1e3a8a;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">Report: '.htmlspecialchars($rr['name_old']).' changed</h1>';
+            if ($tt<600)
+            {
+                $txt.='<div class="status-uncertified" style="padding:12px 16px;border-radius:6px;margin-bottom:16px;">Your input is required to approve or dismiss the proposed changes.</div>';
+            } else
+            {
+                $txt.='<div class="status-request-access" style="padding:12px 16px;border-radius:6px;margin-bottom:16px;">This is a notification for your information.</div>';
+            }
+            $txt.='<p style="margin-bottom:20px;color:#64748b;font-size:14px;">Changed by <strong style="color:#374151;">'.htmlspecialchars($rr['uname']).'</strong>'.
+                    ' ('.htmlspecialchars($rr['uemail']).') on '.$rr['updatedAt'].'.</p>';
+
+            $table=getFieldChanges($rr);
+            if ($table!='')
+            {
+                $txt.='<h2 style="font-size:16px;color:#475569;margin:20px 0 10px;">Changed field(s) inside Report:</h2>'.
+                        '<table class="table-asset table-view"><thead class="thead-asset"><tr><th class="th-asset">Field</th><th class="th-asset">Old Value</th><th class="th-asset">New Value</th></tr></thead><tbody>'."\n".
+                        $table.'</tbody></table>';
+            }
         }
     }
 }
@@ -206,10 +246,33 @@ if (($tt>=500)&&($tt<600))
             echo '<button class="btn-reject">&#10007; Changes Rejected </button>';
         echo '</div>';
     }
-}
+    echo '&nbsp;<div class="edit-field edit-field--stacked">';
+} else if ($tt==100) { ?>
+&nbsp;    
+<div>
+        <div class="status-row" style="padding-bottom:10px">
+            <label class="status-label">Priority</label>
+<?php
+echo '<div class="status-buttons" data-columnname="urgency" data-tablename="Tasks" data-id="'.
+    $idAsset.'">';
 ?>
-&nbsp;
-    <div class="edit-field edit-field--stacked">
+                <input type="radio" name="urgency" id="priority-low" value="1" class="toxradio" onclick="saveContent(1,0,this.parentElement);"
+<?php if ($rowAsset['urgency']==1) echo 'checked'; ?>
+                >
+                <label for="priority-low" class="status-btn status-certified">Low</label>
+                <input type="radio" name="urgency" id="priority-medium" value="2" class="toxradio" onclick="saveContent(2,0,this.parentElement);"
+<?php if ($rowAsset['urgency']==2) echo 'checked'; ?>
+                >
+                <label for="priority-medium" class="status-btn status-uncertified">Medium</label>
+                <input type="radio" name="urgency" id="priority-high" value="3" class="toxradio" onclick="saveContent(3,0,this.parentElement);"
+<?php if ($rowAsset['urgency']==3) echo 'checked'; ?>
+                >
+                <label for="priority-high" class="status-btn status-do-not-use">High</label>
+            </div>
+        </div>
+    </div>
+    <div class="edit-field">
+<?php } ?>
         <label>Description</label>
         <div class="text-input-style">
 <?php
@@ -222,7 +285,7 @@ else echo $txt;
         <div class="status-row" style="padding-bottom:10px">
             <label class="status-label">Status</label>
 <?php
-echo '<div class="status-buttons" data-columnname="status" data-tablename="assets" data-id="'.
+echo '<div class="status-buttons" data-columnname="status" data-tablename="Tasks" data-id="'.
     $idAsset.'">';
 ?>
                 <input type="radio" name="status" id="status-uncertified" value="pending" class="toxradio" onclick="saveContent(0,0,this.parentElement);"

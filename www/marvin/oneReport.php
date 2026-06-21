@@ -51,10 +51,14 @@ if (isset($_REQUEST['newAsset'])) $newAsset=$_REQUEST['newAsset'];
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
 $db->exec("attach database '".__DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
-$stmt = $db->prepare('select a.*, s.name as servername, u.name as ownername, u.email as owneremail, d.icon as icon, d.name as dptname from Assets a'.
+$stmt = $db->prepare(
+        'SELECT a.*, s.name as servername, u.name as ownername, u.email as owneremail, d.icon as icon, d.name as dptname'.
+        ' ,COALESCE(ac.changeId,0) as assetChangeId,COALESCE(ac.idserver,a.idserver) as idserver_new,COALESCE(ac.name,a.name) as name_new,COALESCE(ac.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(ac.longDescription,a.longDescription) as longDescription_new,COALESCE(ac.status,a.status) as status_new,COALESCE(ac.tags,a.tags) as tags_new'.
+        ' FROM Assets a'.
         ' LEFT JOIN Servers s ON a.idserver=s.id'.
         ' LEFT JOIN Users u ON a.idowner=u.id'.
         ' LEFT JOIN departments d ON a.idDepartment=d.id'.
+        ' LEFT JOIN AssetsChanges ac ON ac.rowId=a.id AND ac.changedByUserId='.$myid.
         ' where a.id=:ids');
 $stmt->bindValue(':ids',$idAsset);
 $results=$stmt->execute();
@@ -106,11 +110,12 @@ echo '/ <a href="">'.$rowAsset['name'].'</a>'
 <div class="edit-panel">
     <div class="edit-field">
         <label>Short Description</label>
-        <div class="text-input-style" style="background:#aeecff">
+        <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname="shortDescription" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['shortDescription'].'</div>';
-?>            
+    $idAsset.'" data-highlight="'.($rowAsset['shortDescription']!=$rowAsset['shortDescription_new']).
+    '">'.$rowAsset['shortDescription_new'].'</div>';
+?>
         </div>
     </div>
 <?php
@@ -121,7 +126,8 @@ require "_pe_selectDpt.php";
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname2="tags" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['tags'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['tags']!=$rowAsset['tags_new']).
+    '">'.$rowAsset['tags_new'].'</div>';
 ?>
         </div>
     </div>
@@ -152,9 +158,9 @@ echo '<div class="status-buttons" data-columnname="status" data-tablename="Asset
         <label>Long Description</label>
 <?php
 echo '<textarea id="editorMain" rows="1" data-columnname="longDescription" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['longDescription'].'</textarea></div>';
+    $idAsset.'">'.$rowAsset['longDescription_new'].'</textarea></div>';
 if ($myid!=$rowAsset['idowner'])
-{ 
+{
 ?>
     <div class="status-buttons">
         <input type="button" name="status" id="status-request-access" value="request-access" class="status-btn status-request-access" 
@@ -193,9 +199,12 @@ echo '</div><div class="extradata">&#128336; <em>Last update</em>: '.
 <?php
 $hiddenUrlParameters='<input type="hidden" name="idasset" value="'.$idAsset.
     '"><input type="hidden" name="newAsset" value="'.$newAsset.'">';
-$sql='SELECT a.*, la.liketype from KPI a '.
-     'LEFT JOIN likesKPI la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
-     ' where idasset='.$_REQUEST['idasset'].' ';
+$sql='SELECT a.*, la.liketype'.
+     ',COALESCE(kc.name,a.name) as name_new,COALESCE(kc.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(kc.status,a.status) as status_new,COALESCE(kc.tags,a.tags) as tags_new'.
+     ' from KPI a'.
+     ' LEFT JOIN likesKPI la ON a.id=la.idassetorcolumn AND la.iduser='.$myid.
+     ' LEFT JOIN KPIChanges kc ON kc.rowId=id AND kc.fromAssetChangeId='.$rowAsset['assetChangeId'].
+     ' where idasset='.$_REQUEST['idasset'];
 $filterOnAssetTable=false;
 require "_pe_filters.php";
 ?>
@@ -222,12 +231,13 @@ for($i=0;$i<count($array_rows);$i++)
         echo '<a style="text-decoration:none;display:none" class="deleteicon" href="oneReportDelKPI.php?idkpi='.
                 $row['id'].'&'.http_build_query($_REQUEST).'"><img src="ressources/delete.svg" height="20px" style="vertical-align: middle;"/></a>';
     echo '<div class="editable" style="display:inline" data-id="'.$row['id'].
-            '" data-columnname2="name" data-tablename="KPI">'.($row['name']).
+            '" data-columnname2="name" data-tablename="KPI">'.($row['name_new']).
             '</div></div></td><td><div class="editable" data-id="'.$row['id'].
-            '" data-columnname="shortDescription" data-tablename="KPI">'.
-        	($row['shortDescription']).' </div></td><td style="text-align: center;"><div class="statusEdit" data-id="'.$row['id'].
-            '" data-status="'.$row['status'].'" data-tablename="KPI">'.
-            getStatusDisplay($row['status']).'</div></td><td style="width: 80px;"><div class="popularity-bar">'.
+            '" data-columnname="shortDescription" data-tablename="KPI" data-highlight="'.
+            ($row['shortDescription_new']!=$row['shortDescription']).'">'.
+        	($row['shortDescription_new']).' </div></td><td style="text-align: center;"><div class="statusEdit" data-id="'.$row['id'].
+            '" data-status="'.$row['status_new'].'" data-tablename="KPI">'.
+            getStatusDisplay($row['status_new']).'</div></td><td style="width: 80px;"><div class="popularity-bar">'.
             '<div class="popularity-fill" style="width: '.$row['popularity'].
             '%"></div></div></td><td style="text-align: center;"><div onclick="addlike(this,'.$row['id'].',\'KPI\')">';
     if ($row['rating']!=0) { echo $row['rating'].' '; }
@@ -293,9 +303,16 @@ $db->close();
     </div>
 <?php require '_pe_footer.php'; ?>
 <?php require '_pe_tableJSFilter.html'; ?>
-<script>
-initHugeRTEEditMain('#aeecff');
 <?php
+//echo $rowAsset['longDescription']."<br>";
+//echo $rowAsset['longDescription_new']."<br>";
+?>
+<script>
+<?php
+if ($rowAsset['longDescription']!=$rowAsset['longDescription_new'])
+    echo 'initHugeRTEEditMain("#aeecff");';
+else echo 'initHugeRTEEditMain();';
+
 if ((isset($_REQUEST['edit']))||($newAsset))
 {
   echo 'enableDisableEdit(document.getElementById("enableDisableButton"));';

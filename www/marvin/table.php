@@ -68,10 +68,13 @@ if (isset($_REQUEST['newAsset'])) $newAsset=$_REQUEST['newAsset'];
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
 $db->exec("attach database '".__DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
-$stmt = $db->prepare('select a.*, s.name as servername, u.name as ownername, u.email as owneremail, d.icon as icon, d.name as dptname from Assets a'.
+$stmt = $db->prepare('select a.*, s.name as servername, u.name as ownername, u.email as owneremail, d.icon as icon, d.name as dptname'.
+        ' ,COALESCE(ac.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(ac.longDescription,a.longDescription) as longDescription_new,COALESCE(ac.schema,a.schema) as schema_new,COALESCE(ac.tags,a.tags) as tags_new'.
+        ' from Assets a'.
         ' LEFT JOIN Servers s ON a.idserver=s.id'.
         ' LEFT JOIN Users u ON a.idowner=u.id'.
         ' LEFT JOIN departments d ON a.idDepartment=d.id'.
+        ' LEFT JOIN AssetsChanges ac ON ac.rowId=a.id AND ac.changedByUserId='.$myid.
         ' where a.id=:ids');
 $stmt->bindValue(':ids',$idAsset);
 $results=$stmt->execute();
@@ -127,7 +130,8 @@ echo '/ <a href="">'.$rowAsset['name'].'</a>'
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname="shortDescription" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['shortDescription'].'</div></div></div>';
+    $idAsset.'" data-highlight="'.($rowAsset['shortDescription']!=$rowAsset['shortDescription_new']).
+    '">'.$rowAsset['shortDescription_new'].'</div></div></div>';
 require "_pe_selectDpt.php";
 ?>
     <div class="edit-field">
@@ -141,7 +145,8 @@ else echo 'Schema';
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname2="schema" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['schema'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['schema']!=$rowAsset['schema_new']).
+    '">'.$rowAsset['schema_new'].'</div>';
 ?>            
         </div>
     </div>
@@ -150,7 +155,8 @@ echo '<div class="editable" data-columnname2="schema" data-tablename="Assets" da
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname2="tags" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['tags'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['tags']!=$rowAsset['tags_new']).
+    '">'.$rowAsset['tags_new'].'</div>';
 ?>
         </div>
     </div>
@@ -181,7 +187,7 @@ echo '<div class="status-buttons" data-columnname="status" data-tablename="Asset
         <label>Long Description</label>
 <?php
 echo '<textarea id="editorMain" rows="1" data-columnname="longDescription" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['longDescription'].'</textarea></div>';
+    $idAsset.'">'.$rowAsset['longDescription_new'].'</textarea></div>';
 if ($myid!=$rowAsset['idowner'])
 { 
 ?>
@@ -231,8 +237,11 @@ echo '</div><div class="extradata">&#128336; <em>Last update</em>: '.
 <?php
 $hiddenUrlParameters='<input type="hidden" name="idasset" value="'.$idAsset.
     '"><input type="hidden" name="newAsset" value="'.$newAsset.'">';
-$sql='SELECT a.*, la.liketype from Columns a '.
+$sql='SELECT a.*, la.liketype'.
+     ',COALESCE(cc.name,a.name) as name_new,COALESCE(cc.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(cc.status,a.status) as status_new,COALESCE(cc.tags,a.tags) as tags_new'.
+     ' from Columns a '.
      'LEFT JOIN likesColumns la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
+     ' LEFT JOIN ColumnsChanges cc ON cc.rowId=a.id AND cc.changedByUserId='.$myid.
      ' where idasset='.$_REQUEST['idasset'].' ';
 $filterOnAssetTable=false;
 require "_pe_filters.php";
@@ -264,7 +273,14 @@ for($i=0;$i<count($array_rows);$i++)
 {
 // this is an error to use "htmlspecialchars()" anywhere here:
 	$row=$array_rows[$i];
-    echo '<tr class="tr-asset"><td class="history-iconcol" style="text-align: center;">'.
+    echo '<tr class="tr-asset';
+    if (($isSuperAdmin==0)&&(
+        ($row['name']!=$row['name_new'])||
+        ($row['shortDescription']!=$row['shortDescription_new'])||
+        ($row['status']!=$row['status_new'])||
+        ($row['tags']!=$row['tags_new'])))
+        echo " highlighted";
+    echo '"><td class="history-iconcol" style="text-align: center;">'.
             getIconColumn($row['datatype']).
             '<a style="text-decoration:none;display:none" class="advdelete" href="tableDelCol.php?idcol='.
             $row['id'].'&'.http_build_query($_REQUEST).'"><img src="ressources/delete.svg" height="20px" style="vertical-align: middle;"/></a>'.
@@ -342,8 +358,11 @@ $db->close();
 <?php require '_pe_footer.php'; ?>
 <?php require '_pe_tableJSFilter.html'; ?>
 <script>
-initHugeRTEEditMain();
 <?php
+if ($rowAsset['longDescription']!=$rowAsset['longDescription_new'])
+    echo 'initHugeRTEEditMain("#aeecff");';
+else echo 'initHugeRTEEditMain();';
+
 if ((isset($_REQUEST['advEdit']))||($newAsset))
 {
   echo 'enableDisableEdit(document.getElementById("enableDisableButton")); '.

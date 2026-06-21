@@ -18,11 +18,11 @@ $filter='';
 if (isset($_REQUEST['datatype'])) $dt=$_REQUEST['datatype'];
 if (isset($_REQUEST['idserver'])) $idserver=$_REQUEST['idserver'];
 
-if ($dt=='Files') $filter="AND category>=100 and category<120";
-else if ($dt=='Data Bases') $filter="AND category>=120 and category<140";
-else if ($dt=='Applications') $filter="AND category>=140 and category<160";
-else if ($dt=='API\'s') $filter="AND category>=160 and category<199";
-else $filter="AND category>=100 and category<199";
+if ($dt=='Files') $filter="AND a.category>=100 and a.category<120";
+else if ($dt=='Data Bases') $filter="AND a.category>=120 and a.category<140";
+else if ($dt=='Applications') $filter="AND a.category>=140 and a.category<160";
+else if ($dt=='API\'s') $filter="AND a.category>=160 and a.category<199";
+else $filter="AND a.category>=100 and a.category<199";
 
 if ($idserver!=0) $filter.=" and idserver=".$idserver;
 ?>
@@ -118,13 +118,17 @@ if ($dt=="") echo '<h2>All Schemas, Tables and Views</h2>';
 
 $hiddenUrlParameters='<input type="hidden" name="datatype" value="'.$dt.
     '"><input type="hidden" name="idserver" value="'.$idserver.'">';
-if($isSuperAdmin==1) 
+if($isSuperAdmin==1)
     $sql='SELECT a.*, la.liketype, 2 as rights from Assets a'.
+        ',a.shortDescription as shortDescription_new'.
         ' LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
         ' where 1=1 '.$filter;
-else         
-    $sql='SELECT a.*, la.liketype, ud.rights as rights from Assets a'.
+else
+    $sql='SELECT a.*, la.liketype, ud.rights as rights'.
+        ',COALESCE(ac.idserver,a.idserver) as idserver_new,COALESCE(ac.name,a.name) as name_new,COALESCE(ac.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(ac.longDescription,a.longDescription) as longDescription_new,COALESCE(ac.status,a.status) as status_new,COALESCE(ac.tags,a.tags) as tags_new'.
+        ' from Assets a'.
         ' LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
+        ' LEFT JOIN AssetsChanges ac ON ac.rowId=a.id AND ac.changedByUserId='.$myid.
         ' INNER JOIN userDepartmentRights ud ON a.idDepartment=ud.idDepartment'.
         ' where ud.idUser='.$myid.' '.$filter;
 $filterOnAssetTable=true;
@@ -149,7 +153,16 @@ require "_pe_filters.php";
 for($i=0;$i<count($array_rows);$i++)
 {
 	$row=$array_rows[$i];
-    echo '<tr class="tr-asset"><td class="history-icon" style="text-align: center;">'.
+    echo '<tr class="tr-asset';
+    if (($isSuperAdmin==0)&&(
+        ($row['idserver']!=$row['idserver_new'])||
+        ($row['name']!=$row['name_new'])||
+        ($row['shortDescription']!=$row['shortDescription_new'])||
+        ($row['longDescription']!=$row['longDescription_new'])||
+        ($row['status']!=$row['status_new'])||
+        ($row['tags']!=$row['tags_new'])))
+        echo " highlighted";
+    echo '"><td class="history-icon" style="text-align: center;">'.
             getIcon($row['category']).'</td><td><a style="text-decoration:none;" href="storageDelete.php?idasset='.
             $row['id'].'"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/></a>'.
             '<a class="history-title" style="text-decoration:none;" href="table.php?idasset='.
@@ -157,10 +170,10 @@ for($i=0;$i<count($array_rows);$i++)
     if ($row['rights']>=2)
         echo '<div class="editable" data-id="'.$row['id'].
                 '" data-columnname="shortDescription" data-tablename="Assets">'.
-                ($row['shortDescription']).' </div>';
-    else echo ($row['shortDescription']);
+                ($row['shortDescription_new']).' </div>';
+    else echo ($row['shortDescription_new']);
     echo '</td><td style="text-align: center;">'.
-            getStatusDisplay($row['status']).'</td><td style="width: 80px;"><div class="popularity-bar">'.
+            getStatusDisplay($row['status_new']).'</td><td style="width: 80px;"><div class="popularity-bar">'.
             '<div class="popularity-fill" style="width: '.$row['popularity'].
             '%"></div></div></td><td style="text-align: center;">'.
             '<div onclick="addlike(this,'.$row['id'].',\'Assets\')">';

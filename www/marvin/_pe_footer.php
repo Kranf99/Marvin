@@ -109,7 +109,7 @@ function cleanGlossary(content)
   return content;
 }
 
-async function saveContent(content,plainContent,el)
+async function saveContent(content,plainContent,el,editor)
 {
   const id = el.dataset.id;
   var data="{\"id\":"+id+",\"tablename\":\""+el.dataset.tablename;
@@ -125,6 +125,12 @@ async function saveContent(content,plainContent,el)
       body: data});
     const result = await response.text();
     console.log('Saved:', id, result);
+
+    if (editor && !editor.inline) {
+      editor.getBody().style.backgroundColor = '#aeecff';
+    } else
+      el.parentNode.classList.add('highlighted');
+    
   } catch (err) {
     console.error('Save failed:', err);
   }
@@ -199,7 +205,7 @@ function handleEditableClick(event)
 		    hugerte.triggerSave();
 		    myEditorContent = content; // Update tracked content
 	  	  var el=editor.getElement();
-		    saveContent(content,editor.getContent({ format: 'text' }),el);
+		    saveContent(content,editor.getContent({ format: 'text' }),el,editor);
 //		  editor.destroy();
   		});
     },
@@ -231,7 +237,7 @@ function handleEditableClick(event)
 
 function initHugeRTEEditMain(bgcolor)
 {
- if (!bgcolor) bgcolor = 'white';
+ if (!bgcolor) bgcolor = '#fff';
  hugerte.init({
   selector: 'textarea#editorMain',
   plugins: [
@@ -269,7 +275,7 @@ function initHugeRTEEditMain(bgcolor)
       if (linked !== content) editor.setContent(linked);
 	    hugerte.triggerSave();
 	    myMainEditorContent = content; // Update tracked content
-	    saveContent(content,0,editor.getElement());
+	    saveContent(content,0,editor.getElement(),editor);
 	  });
     window.addEventListener('beforeunload', function (e) {
       const content = editor.getContent();
@@ -296,6 +302,14 @@ function initEditAllCells()
     {
       c=editables[i].innerHTML;
       editables[i].innerHTML=upgradeGlossary(c);
+      if (editables[i].dataset.highlight)
+      {
+        editables[i].parentNode.classList.add('highlighted');
+        var row = editables[i].closest('.tr-asset');
+        if (row) {
+          row.classList.add('highlighted2');
+        }        
+      }
     }
   }, 100);
 }

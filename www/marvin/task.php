@@ -125,7 +125,7 @@ for($i=0;$i<count($array_rows);$i++)
     } else echo '📋';
     echo '</td><td>'.$row['dateCreated'].
             '</td><td><a style="text-decoration:none;" href="taskDelete.php?idasset='.
-            $row['id'].'"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/></a>'.
+            $row['id'].'" onclick="return confirm(\'Are you sure you want to delete this task?\')"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/></a>'.
             '<a class="history-title" style="text-decoration:none;" href="oneTask.php?idasset='.
             $row['id'].'">'.htmlspecialchars($row['name']).'</a>';
     if ($row['assignedToUserId']==$myid) $tt='ME';

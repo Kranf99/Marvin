@@ -6,17 +6,19 @@
     </a>
 </div>
 <a href="report.php" class="nav-item" style="color:#fff; text-decoration:none;">
-    📊 &nbsp; Reports</a>
+    <img src="ressources/reports.svg" height="25px"/> Reports</a>
 <a href="storage.php" class="nav-item" style="color:#fff; text-decoration:none;">
     <img src="ressources/database.svg" height="25px"/> Storage</a> 
 <a href="workflow.php" class="nav-item" style="color:#fff; text-decoration:none;">
     <img src="ressources/anatella.svg" height="25px"/> Workflows</a>
 <a href="Task.php" class="nav-item" style="color:#fff; text-decoration:none;">
-    📌 &nbsp; Tasks</a>
+    <img src="ressources/tasks.svg" height="23px"/> Tasks</a>
 <a href="glossary.php" class="nav-item" style="color:#fff; text-decoration:none;">
-    📖 &nbsp; Glossary</a>
+    <img src="ressources/glossary.svg" width="28px"/> Glossary</a>
+<a href="../lineage/marvin_lineage.html" class="nav-item" style="color:#fff; text-decoration:none;">
+    <img src="ressources/lineage.svg" height="28px"/> Lineage</a>
 <a href="user.php" class="nav-item" style="color:#fff; text-decoration:none;">
-    👥 &nbsp; People</a>
+    <img src="ressources/users.svg" height="23px"/> People</a>
 </div>
 
 <!-- Main content -->

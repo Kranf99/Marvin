@@ -33,8 +33,12 @@ if (isset($_REQUEST['newAsset'])) $newAsset=$_REQUEST['newAsset'];
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
 $db->exec("attach database '".__DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
-$stmt = $db->prepare('select a.*, u.name as ownername, u.email as owneremail from Glossary a'.
-        ' LEFT JOIN Users u ON a.idowner=u.id where a.id=:ids');
+$stmt = $db->prepare('select a.*, u.name as ownername, u.email as owneremail'.
+        ' ,COALESCE(ac.changeId,0) as assetChangeId,COALESCE(ac.name,a.name) as name_new,COALESCE(ac.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(ac.longDescription,a.longDescription) as longDescription_new,COALESCE(ac.status,a.status) as status_new,COALESCE(ac.tags,a.tags) as tags_new'.
+        ' from Glossary a'.
+        ' LEFT JOIN Users u ON a.idowner=u.id'.
+        ' LEFT JOIN GlossaryChanges ac ON ac.rowId=a.id AND ac.changedByUserId='.$myid.
+        ' where a.id=:ids');
 $stmt->bindValue(':ids',$idAsset);
 $results=$stmt->execute();
 $rowAsset=$results->fetchArray(SQLITE3_ASSOC);
@@ -44,48 +48,16 @@ if (!$rowAsset)
     die;
 }
 
-// Check for a pending/approved change by the current user (shown immediately to the editor)
-$pendingChange  = null;
-$rejectedChange = null;
-$stmtPC = $db->prepare(
-    "SELECT * FROM GlossaryChanges WHERE rowId=:id AND changedByUserId=:uid AND changeStatus IN ('pending','approved') ORDER BY changeId DESC LIMIT 1"
-);
-$stmtPC->bindValue(':id',  $idAsset);
-$stmtPC->bindValue(':uid', $myid);
-$pendingChange = $stmtPC->execute()->fetchArray(SQLITE3_ASSOC);
-
-if (!$pendingChange) {
-    // Check if the most recent change was rejected (show banner only)
-    $stmtRC = $db->prepare(
-        "SELECT * FROM GlossaryChanges WHERE rowId=:id AND changedByUserId=:uid AND changeStatus='rejected' ORDER BY changeId DESC LIMIT 1"
-    );
-    $stmtRC->bindValue(':id',  $idAsset);
-    $stmtRC->bindValue(':uid', $myid);
-    $rejectedChange = $stmtRC->execute()->fetchArray(SQLITE3_ASSOC);
-}
-
-// The editor sees their own pending values; everyone else sees the committed row
-$displayRow = $pendingChange ?: $rowAsset;
-
 echo' DEFINITION ';
-if (!$newAsset) echo htmlspecialchars($displayRow['name']);
+if (!$newAsset) echo htmlspecialchars($rowAsset['name_new']);
 else echo '<div style="display:inline" class="editable" data-columnname2="name" data-tablename="Glossary" data-id="'.
-    $idAsset.'">'.$displayRow['name'].'</div>';
+    $idAsset.'">'.$rowAsset['name_new'].'</div>';
 ?></h1>
-<?php if ($pendingChange): ?>
-<div style="background:#e8f4fd;border:1px solid #5aace4;border-radius:6px;padding:8px 14px;margin-bottom:10px;font-size:13px;">
-    &#9998; Your changes are <strong>pending review</strong> by the owner and are only visible to you.
-</div>
-<?php elseif ($rejectedChange): ?>
-<div style="background:#fdecea;border:1px solid #e57373;border-radius:6px;padding:8px 14px;margin-bottom:10px;font-size:13px;">
-    &#10007; Your previous changes were <strong>rejected</strong> by the owner.
-</div>
-<?php endif; ?>
 <button id="enableDisableButton" class="server-hide-btn" onclick="enableDisableEdit(this)">Enable Edit</button>
 </div>
     <div class="breadcrumb"><a href="home.php">Home</a> / <a href="glossary.php">Glossary</a>
 <?php
-echo '/ '.$rowAsset['name']
+echo '/ '.$rowAsset['name_new']
 ?>                        
     </div>
 </div>
@@ -96,7 +68,8 @@ echo '/ '.$rowAsset['name']
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname="shortDescription" data-tablename="Glossary" data-id="'.
-    $idAsset.'">'.$displayRow['shortDescription'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['shortDescription']!=$rowAsset['shortDescription_new']).
+    '">'.$rowAsset['shortDescription_new'].'</div>';
 ?>            
         </div>
     </div>
@@ -105,7 +78,8 @@ echo '<div class="editable" data-columnname="shortDescription" data-tablename="G
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname2="tags" data-tablename="Glossary" data-id="'.
-    $idAsset.'">'.$displayRow['tags'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['tags']!=$rowAsset['tags_new']).
+    '">'.$rowAsset['tags_new'].'</div>';
 ?>
         </div>
     </div>
@@ -117,15 +91,15 @@ echo '<div class="status-buttons" data-columnname="status" data-tablename="Gloss
     $idAsset.'">';
 ?>            
                 <input type="radio" name="status" id="status-uncertified" value="uncertified" class="toxradio" onclick="saveContent(0,0,this.parentElement);"
-<?php if ($displayRow['status']==0) echo 'checked'; ?>
+<?php if ($rowAsset['status_new']==0) echo 'checked'; ?>
                 >
                 <label for="status-uncertified" class="status-btn status-uncertified">Uncertified</label>
                 <input type="radio" name="status" id="status-certified" value="certified" class="toxradio" onclick="saveContent(1,0,this.parentElement);"
-<?php if ($displayRow['status']==1) echo 'checked'; ?>
+<?php if ($rowAsset['status_new']==1) echo 'checked'; ?>
                 >
                 <label for="status-certified" class="status-btn status-certified">Certified</label>
                 <input type="radio" name="status" id="status-do-not-use" value="do-not-use" class="toxradio" onclick="saveContent(2,0,this.parentElement);"
-<?php if ($displayRow['status']==2) echo 'checked'; ?>
+<?php if ($rowAsset['status_new']==2) echo 'checked'; ?>
                 > 
                 <label for="status-do-not-use" class="status-btn status-do-not-use">Do Not Use</label> 
             </div>
@@ -136,7 +110,7 @@ echo '<div class="status-buttons" data-columnname="status" data-tablename="Gloss
         <label>Long Description</label>
 <?php
 echo '<textarea id="editorMain" rows="1" data-columnname="longDescription" data-tablename="Glossary" data-id="'.
-    $idAsset.'">'.$displayRow['longDescription'].'</textarea></div>';
+    $idAsset.'">'.$rowAsset['longDescription_new'].'</textarea></div>';
 if ($myid!=$rowAsset['idowner'])
 { 
 ?>
@@ -203,8 +177,11 @@ $db->close();
     </div>
 <?php require '_pe_footer.php'; ?>
 <script>
-initHugeRTEEditMain();
 <?php
+if ($rowAsset['longDescription']!=$rowAsset['longDescription_new'])
+    echo 'initHugeRTEEditMain("#aeecff");';
+else echo 'initHugeRTEEditMain();';
+
 if ((isset($_REQUEST['edit']))||($newAsset))
 {
   echo 'enableDisableEdit(document.getElementById("enableDisableButton"));';

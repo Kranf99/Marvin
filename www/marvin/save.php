@@ -160,7 +160,11 @@ if (array_key_exists($tablename,$changesTableMap))
 //    $changeStatus = $isSuperAdmin ? 'approved' : 'pending';
 
     // check if rowID exists
-    $stmt = $db->prepare('SELECT 1 FROM ' . $tablename . ' WHERE id=:id');
+    if (($tablename=='Columns')||($tablename=='KPI'))
+        $sql='SELECT idowner,idasset FROM ' . $tablename . ' WHERE id=:id';
+    else
+        $sql='SELECT idowner FROM ' . $tablename . ' WHERE id=:id';
+    $stmt = $db->prepare($sql);
     $stmt->bindValue(':id', $rowId);
     $baseRow = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
     if (!$baseRow) {
@@ -178,11 +182,15 @@ if (array_key_exists($tablename,$changesTableMap))
     } else
     {
         // Find Latest pending/approved change for this user (no task yet) — used as snapshot base
-        $latestPending = $db->querySingle(
-            ' SELECT changeId FROM '.$changesTable.' WHERE rowId='.$rowId.
-            ' AND changedByUserId='.$myid.' AND taskId IS NULL'); // ORDER BY changeId DESC LIMIT 1'
+        $sql='SELECT changeId FROM '.$changesTable.' WHERE rowId=:rowId'.
+                ' AND changedByUserId=:changedByUserId';
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue(':rowId',           $rowId);
+        $stmt->bindValue(':changedByUserId', $myid);
+        $results=$stmt->execute();
+        $rr=$results->fetchArray(SQLITE3_ASSOC);
 
-        if ($latestPending)
+        if ($rr)
         {
             $sql='';
             if (strlen($cn))  $sql=$cn.'=:content';
@@ -194,42 +202,77 @@ if (array_key_exists($tablename,$changesTableMap))
             if (strlen($cn))  $stmt->bindValue(':content',  $content);
             if (strlen($cn2)) $stmt->bindValue(':content2', $content2);
             $stmt->bindValue(':updatedAt', date('Ymd H:i:s'));
-            $stmt->bindValue(':changeId', $latestPending);
+            $stmt->bindValue(':changeId', $rr['changeId']);
             $stmt->execute();
             $nChanges=$db->changes();
-        } else {
+        } else 
+        {
+            if (($tablename=='Columns')||($tablename=='KPI'))
+            {
+                $stmt = $db->prepare(
+                    ' SELECT changeId FROM AssetsChanges WHERE rowId=:rowId'.
+                    ' AND changedByUserId=:changedByUserId');
+                $stmt->bindValue(':rowId',           $baseRow['idasset']);
+                $stmt->bindValue(':changedByUserId', $myid);
+                $results=$stmt->execute();
+                $r2=$results->fetchArray(SQLITE3_ASSOC);
+                if ($r2)
+                    $fromAssetChangeId=$r2['changeId'];
+                else
+                {
+                    $sql='INSERT INTO AssetsChanges'.
+                    ' (rowId,taskId,changeStatus,changedByUserId,needCheck,updatedAt,'.
+                    'schema_old,idserver_old,name_old,shortDescription_old,'.
+                    'longDescription_old,status_old,idowner_old,tags_old,category'.
+                    ') SELECT id,null,\'Pending\',:changedByUserId,:needCheck,:updatedAt,'.
+                    'schema,idserver,name,shortDescription,'.
+                    'longDescription,status,idowner,tags,category'.
+                    ' FROM Assets WHERE id=:rowId';
+                    $stmt = $db->prepare($sql);
+                    $stmt->bindValue(':rowId',           $baseRow['idasset']);
+                    $stmt->bindValue(':changedByUserId', $myid);
+                    $stmt->bindValue(':needCheck',      (!$isSuperAdmin));
+                    $stmt->bindValue(':updatedAt',       date('Ymd H:i:s'));
+                    $stmt->execute();
+                    $fromAssetChangeId = (int)$db->lastInsertRowID();
+                }
+            }
+
             // Insert new snapshot row
             $sql=''; $sql2='';
             if (strlen($cn))  { $sql =','.$cn;  $sql2 =',:content';  }
             if (strlen($cn2)) { $sql.=','.$cn2; $sql2.=',:content2'; }
 
             $colCopyTableMap = [
-                'Assets'   => ',schema_old,idserver_old,name_old,shortDescription_old,'.
+                'Assets'   => ',taskId,changeStatus,schema_old,idserver_old,name_old,shortDescription_old,'.
                     'longDescription_old,status_old,idowner_old,tags_old,category',
-                'Columns'  => ',name_old,shortDescription_old,status_old,tags_old,idasset',
-                'Glossary' => ',shortDescription_old,longDescription_old,status_old,tags_old',
-                'KPI'      => ',name_old,shortDescription_old,status_old,tags_old,idasset',
+                'Columns'  => ',name_old,shortDescription_old,status_old,tags_old,fromAssetChangeId',
+                'Glossary' => ',taskId,name_old,shortDescription_old,longDescription_old,status_old,tags_old,idowner_old',
+                'KPI'      => ',name_old,shortDescription_old,status_old,tags_old,fromAssetChangeId',
                 'servers'  => ',name_old,serverType_old,description_old,tags_old'
             ];
             $colOrigTableMap = [
-                'Assets'   => ',schema,idserver,name,shortDescription,'.
+                'Assets'   => ',null,\'Pending\',schema,idserver,name,shortDescription,'.
                     'longDescription,status,idowner,tags,category',
-                'Columns'  => ',name,shortDescription,status,tags,idasset',
-                'Glossary' => ',shortDescription,longDescription,status,tags',
-                'KPI'      => ',name,shortDescription,status,tags,idasset',
+                'Columns'  => ',name,shortDescription,status,tags,:assetChangeId',
+                'Glossary' => ',null,name,shortDescription,longDescription,status,tags,idowner',
+                'KPI'      => ',name,shortDescription,status,tags,:assetChangeId',
                 'servers'  => ',name,serverType,description,tags'
             ];
-
-            $stmt = $db->prepare('INSERT INTO '.$changesTable.
-                    ' (rowId,taskId,changedByUserId,needCheck,updatedAt'.
+            $sql='INSERT INTO '.$changesTable.
+                    ' (rowId,changedByUserId,needCheck,updatedAt'.
                     $sql.$colCopyTableMap[$tablename].
-                    ') SELECT :rowId,null,:changedByUserId,:needCheck,:updatedAt'.
+                    ') SELECT :rowId,:changedByUserId,:needCheck,:updatedAt'.
                     $sql2.$colOrigTableMap[$tablename].
-                    ' FROM '.$tablename.' WHERE id=:rowId');
+                    ' FROM '.$tablename.' WHERE id=:rowId';
+//            echo $sql;
+            $stmt = $db->prepare($sql);
             $stmt->bindValue(':rowId',           $rowId);
             $stmt->bindValue(':changedByUserId', $myid);
             $stmt->bindValue(':needCheck',      (!$isSuperAdmin));
             $stmt->bindValue(':updatedAt',       date('Ymd H:i:s'));
+            if (($tablename=='Columns')||($tablename=='KPI'))
+                $stmt->bindValue(':assetChangeId',$fromAssetChangeId);
             if (strlen($cn))  $stmt->bindValue(':content',  $content);
             if (strlen($cn2)) $stmt->bindValue(':content2', $content2);
             $stmt->execute();
@@ -237,7 +280,7 @@ if (array_key_exists($tablename,$changesTableMap))
         }
     }
 } else {
-    // ── non-tracked table: direct update (original behaviour) ─────────────────
+    // non-tracked table: direct update
     $nChanges = applyToMainTable($db, $tablename, $rowId, $cn, $content, $cn2, $content2);
 }
 

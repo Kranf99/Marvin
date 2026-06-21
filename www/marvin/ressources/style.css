@@ -405,9 +405,18 @@ input[type="text"], textarea{
 .table-asset.table-view .tr-asset td {
     padding: 12px;
 }
-
+.highlighted {
+    background: #aeecff;
+}
+.text-input-style.highlighted {
+    background: #aeecff !important;
+}
+.tr-asset.highlighted2:hover .highlighted {
+    background: #d3f3fd !important;
+}
 .table-asset.table-view .tr-asset:hover {
-    background: #f8f9fa;
+/*    background: #f8f9fa !important;*/
+    background: #f8f9fa !important;
 }
 
 /* Column width adjustments */

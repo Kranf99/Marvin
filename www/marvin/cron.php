@@ -36,6 +36,10 @@ function hasWordChanged($r)
     return false;
 }
 
+function hasKPIChanges($r)
+{
+    return hasColumnChanges($r);
+}
 function hasColumnChanges($r)
 {
     if ($r['cname']&&($r['cname']!=$r['cname_old'])) 
@@ -134,32 +138,36 @@ for(;;)
         echo "[$now] CutOff: $cutoff\n";
     }
 
-    // find unprocessed changes inside ASSETSCHANGES older than 3 minutes
+    $arrayID_r=[]; $arrayID_s=[]; $arrayID_w=[];
+
+    // find unprocessed STORAGE changes inside ASSETSCHANGES older than 3 minutes
     $stmt = $db->prepare(
         ' SELECT a.*, c.changeId as cchangeId, c.name as cname,c.name_old as cname_old, '.
         ' c.shortDescription as cshortDescription, c.shortDescription_old as cshortDescription_old,'.
         ' c.status as cstatus, c.status_old as cstatus_old,'.
         ' c.tags as ctags, c.tags_old as ctags_old,'.
-        ' u.name as uname FROM AssetsChanges a'.
-        ' LEFT JOIN columnsChanges c ON c.assetChangeId=a.changeId'.
+        ' u.name as uname'.
+        ' FROM AssetsChanges a'.
+        ' LEFT JOIN columnsChanges c ON c.fromAssetChangeId=a.changeId'.
         ' LEFT JOIN dbu.users u on u.id=a.changedByUserId'.
-        ' WHERE a.taskId IS NULL and a.updatedAt<:cutoff');
+        ' WHERE a.taskId IS NULL AND 100<=a.category AND a.category<200 AND a.updatedAt<:cutoff');
     $stmt->bindValue(':cutoff', $cutoff);
     $groups = $stmt->execute();
     $r = $groups->fetchArray(SQLITE3_ASSOC);
-    $arrayID_r=[]; $arrayID_s=[]; $arrayID_w=[];
 
     while($r)
     {
         $rr=$r;
         $aid=(int)$rr['changeId'];
         $hasCChange=false;
+        $arrayIDTemp=[];
         if ($rr['cchangeId']==null) $r=$groups->fetchArray(SQLITE3_ASSOC);
         else
         {
             while (($r)&&($aid==(int)$r['changeId']))
             {
                 $hasCChange=$hasCChange||hasColumnChanges($r);
+                $arrayIDTemp[]=(int)$r['cchangeId'];
                 $r=$groups->fetchArray(SQLITE3_ASSOC);
             }
         }
@@ -180,32 +188,104 @@ for(;;)
             echo "[$now] Created task #$taskId \n";
         } else
         {
-            $c=$rr['category'];
-//            echo" delete $c";
-            if ($c<100) $arrayID_r[]=$aid;
-            else if ($c<200) $arrayID_s[]=$aid;
-            else $arrayID_w[]=$aid;
-//            else array_push($arrayID2,$aid);
+            $arrayID_s=array_merge($arrayID_s,$arrayIDTemp);
+            $arrayID_w[]=$aid;
         }
+    }
+    $stmt->close();
+
+    // find unprocessed REPORTING changes inside ASSETSCHANGES older than 3 minutes
+    $stmt = $db->prepare(
+        ' SELECT a.*, c.changeId as cchangeId, c.name as cname,c.name_old as cname_old, '.
+        ' c.shortDescription as cshortDescription, c.shortDescription_old as cshortDescription_old,'.
+        ' c.status as cstatus, c.status_old as cstatus_old,'.
+        ' c.tags as ctags, c.tags_old as ctags_old,'.
+        ' u.name as uname'.
+        ' FROM AssetsChanges a'.
+        ' LEFT JOIN KPIChanges c ON c.fromAssetChangeId=a.changeId'.
+        ' LEFT JOIN dbu.users u on u.id=a.changedByUserId'.
+        ' WHERE a.taskId IS NULL AND a.category<100 AND a.updatedAt<:cutoff');
+    $stmt->bindValue(':cutoff', $cutoff);
+    $groups = $stmt->execute();
+    $r = $groups->fetchArray(SQLITE3_ASSOC);
+
+    while($r)
+    {
+        $rr=$r;
+        $aid=(int)$rr['changeId'];
+        $hasCChange=false;
+        $arrayIDTemp=[];
+        if ($rr['cchangeId']==null) $r=$groups->fetchArray(SQLITE3_ASSOC);
+        else
+        {
+            while (($r)&&($aid==(int)$r['changeId']))
+            {
+                $hasCChange=$hasCChange||hasKPIChanges($r);
+                $arrayIDTemp[]=(int)$r['cchangeId'];
+                $r=$groups->fetchArray(SQLITE3_ASSOC);
+            }
+        }
+        if (hasFieldChanges($rr)||$hasCChange)
+        {
+            $needCheck= (int)$rr['needCheck'];
+
+            if ($needCheck)
+            {
+                $tname='Validate changes from '.htmlspecialchars($rr['uname']).' on '.htmlspecialchars($rr['name_old']);
+            } else
+            {
+                $tname='Notification: User '.htmlspecialchars($rr['uname']).' changed '.htmlspecialchars($rr['name_old']);
+            }
+
+            $taskId=createTask($db,$needCheck?510:610,$tname,$rr,$now,'Assets');
+            echo "[$now] Created task #$taskId \n";
+        } else 
+        {
+            $arrayID_r=array_merge($arrayID_r,$arrayIDTemp);
+            $arrayID_w[]=$aid;
+        }
+    }
+    $stmt->close();
+
+    // find unprocessed non-REPORTING and non-STORAGE changes inside ASSETSCHANGES older than 3 minutes
+    $stmt = $db->prepare(
+        ' SELECT a.*,u.name as uname'.
+        ' FROM AssetsChanges a'.
+        ' LEFT JOIN dbu.users u on u.id=a.changedByUserId'.
+        ' WHERE a.taskId IS NULL AND a.category>=200 AND a.updatedAt<:cutoff');
+    $stmt->bindValue(':cutoff', $cutoff);
+    $groups = $stmt->execute();
+    $r = $groups->fetchArray(SQLITE3_ASSOC);
+    while($r)
+    {
+        $aid=(int)$r['changeId'];
+        if (hasFieldChanges($r))
+        {
+            $needCheck= (int)$r['needCheck'];
+            if ($needCheck)
+            {
+                $tname='Validate changes from '.htmlspecialchars($r['uname']).' on '.htmlspecialchars($rr['name_old']);
+            } else
+            {
+                $tname='Notification: User '.htmlspecialchars($r['uname']).' changed '.htmlspecialchars($rr['name_old']);
+            }
+            $taskId=createTask($db,0,$tname,$r,$now,'Assets');
+            echo "[$now] Created task #$taskId \n";
+        } else $arrayID_w[]=$aid;
+        $r = $groups->fetchArray(SQLITE3_ASSOC);
     }
     $stmt->close();
 
     if ((!empty($arrayID_r))||(!empty($arrayID_s))||(!empty($arrayID_w)))
     {
-        $s2 = implode(',', $arrayID_r);
-        if ($s2!='') $db->exec('DELETE FROM KPIChanges WHERE assetChangeId IN ('.$s2.')');
+        $s = implode(',', $arrayID_r);
+        if ($s!='') $db->exec('DELETE FROM KPIChanges WHERE changeId IN ('.$s.')');
         $s = implode(',', $arrayID_s);
-        if ($s!='') $db->exec('DELETE FROM ColumnChanges WHERE assetChangeId IN ('.$s.')');
-        $s3 = implode(',', $arrayID_w);
-
-        if ($s2!='') { if ($s!='') $s.=','.$s2; else $s=$s2; }
-        if ($s3!='') { if ($s!='') $s.=','.$s3; else $s=$s3; }
-        $s='DELETE FROM AssetsChanges WHERE changeId IN ('.$s.')';
-        echo $s;
-        $db->exec($s);
+        if ($s!='') $db->exec('DELETE FROM ColumnChanges WHERE changeId IN ('.$s.')');
+        $s = implode(',', $arrayID_w);
+        if ($s!='') $db->exec('DELETE FROM AssetsChanges WHERE changeId IN ('.$s.')');
     }
-    $s=''; $s2=''; $s3='';
-    $arrayID_r=[]; $arrayID_s=[]; $arrayID_w=[];
+    $s=''; $arrayID_r=[]; $arrayID_s=[]; $arrayID_w=[];
 
     // find unprocessed changes inside GLOSSARY older than 3 minutes
 

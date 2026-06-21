@@ -69,30 +69,26 @@ if ($action === 'accept')
     }
 
 //    foreach ($r as $key => $value) {
-//        echo $key . "\n";
+//        echo $key .'='.$value. "\n";
 //    }
 
     $colCopyTableMap = [
         'Assets'   => ['schema_old','idserver_old','name_old','shortDescription_old',
             'longDescription_old','status_old','idowner_old','tags_old','category'],
-//        'Columns'  => ['name_old','shortDescription_old','status_old','tags_old','idasset'],
         'Glossary' => ['shortDescription_old','longDescription_old','status_old','tags_old'],
-//        'KPI'      => ['name_old','shortDescription_old','status_old','tags_old','idasset'],
         'servers'  => ['name_old','serverType_old','description_old','tags_old']
     ];
     $colOrigTableMap = [
         'Assets'   => ['schema','idserver','name','shortDescription',
             'longDescription','status','idowner','tags','category'],
-//        'Columns'  => ['name','shortDescription','status','tags','idasset'],
         'Glossary' => ['shortDescription','longDescription','status','tags'],
-//        'KPI'      => ['name','shortDescription','status','tags','idasset'],
         'servers'  => ['name','serverType','description','tags']
     ];
 
     $co=$colCopyTableMap[$tableName];
     $cn=$colOrigTableMap[$tableName];
     $len=count($co);
-    $sql='UPDATE '.$tableName.' SET ';
+    $sql='';
     for($i=0;$i<$len;$i++)
     { 
         $n=$cn[$i];
@@ -100,24 +96,70 @@ if ($action === 'accept')
         if (($ncontent!=null)&&($ncontent!=$r[$co[$i]]))
             $sql.=$n.'=:'.$n.',';
     }
-    $sql = substr($sql, 0, -1);
-    $sql.=' WHERE id=:id';
-//    echo $sql;
-//    die;
-    $stmtApply = $db->prepare($sql);
-    for($i=0;$i<$len;$i++)
-    { 
-        $n=$cn[$i];
-        $ncontent=$r[$n];
-        if (($ncontent!=null)&&($ncontent!=$r[$co[$i]]))
-            $stmtApply->bindValue(':'.$n, $ncontent);
-    }
-    $stmtApply->bindValue(':id', $r['rowId']);
-    if ($stmtApply->execute()===false)
+    if (strlen($sql)>0)
     {
-        $db->close();
-        header('Location: oneTask.php?idasset='.$taskId.'&message=unable+to+apply+changes');
-        exit;
+        $sql = substr($sql, 0, -1);
+        $sql='UPDATE '.$tableName.' SET '.$sql.' WHERE id=:id';
+//        echo $sql;
+//        die;
+        $stmtApply = $db->prepare($sql);
+        for($i=0;$i<$len;$i++)
+        { 
+            $n=$cn[$i];
+            $ncontent=$r[$n];
+            if (($ncontent!=null)&&($ncontent!=$r[$co[$i]]))
+                $stmtApply->bindValue(':'.$n, $ncontent);
+        }
+        $stmtApply->bindValue(':id', $r['rowId']);
+        if ($stmtApply->execute()===false)
+        {
+            $db->close();
+            header('Location: oneTask.php?idasset='.$taskId.'&message=unable+to+apply+changes');
+            exit;
+        }
+    }
+
+    $tt=(int)$task['taskType'];
+    if (($tableName=='Assets')&&(($tt==510)||($tt==610)||($tt==520)||($tt==620)))
+    {
+        $kpiSql='';
+        if (($tt==510)||($tt==610))
+            $kpiSql='SELECT * FROM KPIChanges WHERE fromAssetChangeId=:aid';
+        else
+            $kpiSql='SELECT * FROM ColumnsChanges WHERE fromAssetChangeId=:aid';
+        $kpiStmt = $db->prepare($kpiSql);
+        $kpiStmt->bindValue(':aid', $changeId);
+        $kpiResults = $kpiStmt->execute();
+        while ($kc = $kpiResults->fetchArray(SQLITE3_ASSOC))
+        {
+            $a=0; $kpiSql='';
+            if ($kc['name']!==null && ($kc['name']!== $kc['name_old'])) 
+                { $kpiSql.='name=:name,'; $a+=1; }
+            if ($kc['shortDescription']!==null && ($kc['shortDescription']!==$kc['shortDescription_old'])) 
+                { $kpiSql.='shortDescription=:shortDescription,'; $a+=2; }
+            if ($kc['status']!== null && ($kc['status']!== $kc['status_old'])) 
+                {  $kpiSql.='status=:status,'; $a+=4; }
+            if ($kc['tags']!== null && ($kc['tags']!==$kc['tags_old'])) 
+                { $kpiSql.='tags=:tags,'; $a+=8; }
+
+            if (strlen($kpiSql) > 0)
+            {
+                $kpiSql=substr($kpiSql,0,-1);
+                if (($tt==510)||($tt==610))
+                    $kpiSql='UPDATE KPI SET '.$kpiSql.' WHERE id=:id';
+                else
+                    $kpiSql='UPDATE Columns SET '.$kpiSql.' WHERE id=:id';
+
+                echo 'kpiSQL='.$kpiSql;
+                $kpiApply = $db->prepare($kpiSql);
+                $kpiApply->bindValue(':id', $kc['rowId']);
+                if (($a&1)!=0) $kpiApply->bindValue(':name',             $kc['name']);
+                if (($a&2)!=0) $kpiApply->bindValue(':shortDescription', $kc['shortDescription']);
+                if (($a&4)!=0) $kpiApply->bindValue(':status',           $kc['status']);
+                if (($a&8)!=0) $kpiApply->bindValue(':tags',             $kc['tags']);
+                $kpiApply->execute();
+            }
+        }
     }
 
     $stmtTask = $db->prepare("UPDATE Tasks SET changeId=NULL, description=:txt, completion=2, dateFinished=:now WHERE id=:tid");
@@ -125,7 +167,7 @@ if ($action === 'accept')
     $stmtTask->bindValue(':txt', $txt);
     $stmtTask->bindValue(':tid', $taskId);
     $stmtTask->execute();
-} else 
+} else // REJECT
 {
     $stmtTask = $db->prepare("UPDATE Tasks SET changeId=NULL, description=:txt, completion=1, dateFinished=:now WHERE id=:tid");
     $stmtTask->bindValue(':now', $now);
@@ -143,13 +185,13 @@ if ($tableName=='Assets')
     $tt=(int)$task['taskType'];
     if (($tt==510)||($tt==610))
     {
-        $stmtStatus = $db->prepare("DELETE FROM KPIChanges WHERE assetChangeId=:tid");
-        $stmtStatus->bindValue(':tid', $changeId);
+        $stmtStatus = $db->prepare('DELETE FROM KPIChanges WHERE fromAssetChangeId=:aid');
+        $stmtStatus->bindValue(':aid', $changeId);
         $stmtStatus->execute();
     } else if (($tt==520)||($tt==620))
     {
-        $stmtStatus = $db->prepare("DELETE FROM ColumnsChanges WHERE assetChangeId=:tid");
-        $stmtStatus->bindValue(':tid', $changeId);
+        $stmtStatus = $db->prepare('DELETE FROM ColumnsChanges WHERE fromAssetChangeId=:aid');
+        $stmtStatus->bindValue(':aid', $changeId);
         $stmtStatus->execute();
     }
 }

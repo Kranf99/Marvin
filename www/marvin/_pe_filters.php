@@ -75,7 +75,7 @@ if ($f3!='')
 $sql=$sql.' ORDER BY a.'.$sortcol.' '.$sortdirection;
 $sql=$sql.' LIMIT 81 OFFSET '.$offset;
 // for debug:
-echo $sql."<br>\n";
+//echo $sql."<br>\n";
 //$results = $db->query($sql);
 $stmt = $db->prepare($sql);
 // todo: binds

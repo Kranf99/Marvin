@@ -119,17 +119,22 @@ $hiddenUrlParameters='<input type="hidden" name="iddept" value="'.$iddept.
 
 $sql='SELECT a.*, la.liketype, d.icon as icon';
 if($isSuperAdmin==1) 
-    $sql.=', 2 as rights from Assets a'.
+    $sql.=', 2 as rights'.
+    ',a.shortDescription as shortDescription_new'.
+    ' from Assets a'.
     ' LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
     ' LEFT JOIN departments d ON a.idDepartment=d.id'.
-    ' where category<100 '.$filter;
+    ' where a.category<100 '.$filter;
 else
 {
-    $sql.=', ud.rights as rights from Assets a'.
+    $sql.=', ud.rights as rights'.
+    ',COALESCE(ac.idserver,a.idserver) as idserver_new,COALESCE(ac.name,a.name) as name_new,COALESCE(ac.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(ac.longDescription,a.longDescription) as longDescription_new,COALESCE(ac.status,a.status) as status_new,COALESCE(ac.tags,a.tags) as tags_new'.
+    ' from Assets a'.
     ' LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
     ' LEFT JOIN departments d ON a.idDepartment=d.id'.
+    ' LEFT JOIN AssetsChanges ac ON ac.rowId=a.id AND ac.changedByUserId='.$myid.
     ' INNER JOIN userDepartmentRights ud ON a.idDepartment=ud.idDepartment and ud.idUser='.$myid.
-    ' where category<100 '.$filter;
+    ' where a.category<100 '.$filter;
 }
 $filterOnAssetTable=true;
 require "_pe_filters.php";
@@ -153,7 +158,16 @@ require "_pe_filters.php";
 for($i=0;$i<count($array_rows);$i++)
 {
 	$row=$array_rows[$i];
-    echo '<tr class="tr-asset"><td class="history-icon" style="text-align: center;">'.
+    echo '<tr class="tr-asset';
+    if (($isSuperAdmin==0)&&(
+        ($row['idserver']!=$row['idserver_new'])||
+        ($row['name']!=$row['name_new'])||
+        ($row['shortDescription']!=$row['shortDescription_new'])||
+        ($row['longDescription']!=$row['longDescription_new'])||
+        ($row['status']!=$row['status_new'])||
+        ($row['tags']!=$row['tags_new'])))
+        echo " highlighted";
+    echo '"><td class="history-icon" style="text-align: center;">'.
             $row['icon'].'</td><td><a style="text-decoration:none;" href="reportDelete.php?idasset='.
             $row['id'].'"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/>'.
         	'</a><a class="history-title" style="text-decoration:none;" href="oneReport.php?idasset='.
@@ -161,7 +175,7 @@ for($i=0;$i<count($array_rows);$i++)
     if ($row['rights']>=2)
         echo '<div class="editable" data-id="'.$row['id'].
             	'" data-columnname="shortDescription" data-tablename="Assets">'.
-            	($row['shortDescription']).' </div>';
+            	($row['shortDescription_new']).'</div>';
     else echo ($row['shortDescription']);
     echo '</td><td style="text-align: center;">'.
             getStatusDisplay($row['status']).'</td><td style="width: 80px;"><div class="popularity-bar">'.

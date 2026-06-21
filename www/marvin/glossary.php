@@ -33,9 +33,17 @@ date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
 
 $hiddenUrlParameters='';
-$sql='SELECT a.*, la.liketype from Glossary a'.
-    ' LEFT JOIN likesGlossary la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
-    ' where toDelete=0 ';
+$sql='SELECT a.*, la.liketype';
+if ($isSuperAdmin==1)
+    $sql.=' from Glossary a'.
+        ' LEFT JOIN likesGlossary la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
+        ' where toDelete=0 ';
+else
+    $sql.=',COALESCE(gc.name,a.name) as name_new,COALESCE(gc.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(gc.longDescription,a.longDescription) as longDescription_new,COALESCE(gc.status,a.status) as status_new,COALESCE(gc.tags,a.tags) as tags_new'.
+        ' from Glossary a'.
+        ' LEFT JOIN likesGlossary la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
+        ' LEFT JOIN GlossaryChanges gc ON gc.rowId=a.id AND gc.changedByUserId='.$myid.
+        ' where toDelete=0 ';
 $filterOnAssetTable=true;
 require "_pe_filters.php";
 ?>
@@ -58,7 +66,15 @@ require "_pe_filters.php";
 for($i=0;$i<count($array_rows);$i++)
 {
 	$row=$array_rows[$i];
-    echo '<tr class="tr-asset"><td style=""width:0"></td><td>'.
+    echo '<tr class="tr-asset';
+    if (($isSuperAdmin==0)&&(
+        ($row['name']!=$row['name_new'])||
+        ($row['shortDescription']!=$row['shortDescription_new'])||
+        ($row['longDescription']!=$row['longDescription_new'])||
+        ($row['status']!=$row['status_new'])||
+        ($row['tags']!=$row['tags_new'])))
+        echo " highlighted";
+    echo '"><td style=""width:0"></td><td>'.
             '<a style="text-decoration:none;" href="glossaryDelete.php?idasset='.
             $row['id'].'"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/></a>'.
             '<a class="history-title" style="text-decoration:none;" href="glossaryOneDef.php?idasset='.
