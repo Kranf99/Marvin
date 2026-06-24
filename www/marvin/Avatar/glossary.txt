@@ -1,2 +1,0 @@
-const myGlossary=["RateOfSales","Frank","Vincent","TermeTechos"];
-const myGlossaryID=[1,8,11,12];
