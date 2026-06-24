@@ -1,0 +1,28 @@
+Todo:
+=====
+update activity table with all the changes
+search bar
+Edit tags (in storage, reports) with dedicated tag editor
+add Azure/Microsoft Domain SSO
+allow to add some attachments (pdf,png,etc) to a task
+add Anatella API to populate Marvin Automatically
+
+Done:
+=====
+* check: accept/reject changes
+* accept/reject changes for status buttons
+* task delete
+* see transient changes (changes that are not accepted nor rejected yet) inside report page
+* see transient changes inside list report page
+* see transient changes inside dataset page
+* see transient changes inside list dataset page
+* Add new Task
+* redo main logos
+
+Nice to have:
+=============
+manage servers (workflow servers - reporting servers - file server - database server)
+add servers logos from all Databases/Datalake Vendors
+Create tasks from chat
+add accept/reject changes in WorkflowIO
+add logos from cloud API vendors
