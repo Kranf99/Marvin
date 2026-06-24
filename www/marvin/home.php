@@ -39,7 +39,7 @@ require "_pe_starter.php";
                             <div class="card-icon"><img src="ressources/glossary.svg" width="56px" height="52px"/></div>
                             <div class="card-title">Glossary</div>
                         </a>
-                        <a class="card" href="../lineage/marvin_lineage.html" style="color:#475569; text-decoration:none;">
+                        <a class="card" href="lineage/lineage.php" style="color:#475569; text-decoration:none;">
                             <div class="card-icon"><img src="ressources/lineage.svg" height="52px"/></div>
                             <div class="card-title">Lineage</div>
                         </a>

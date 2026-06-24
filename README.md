@@ -14,7 +14,6 @@ Data Governance Solution - **Automated**, Agnostic (and Self-documenting if used
 
 **Note**:
 
-To avoid saving the library HugeRTE inside the Marvin Github repository, do the following:
-* In GitHub Desktop, go to Repository menu → Open in Command Prompt 
-* Run: git update-index --skip-worktree www/marvin/hugeRTE/*
-* Close the terminal and check GitHub Desktop
+The HugeRTE library is required to run Marvin. 
+For your convenience, this library is available inside the file HugeRTE.zip in the root of the project
+Please unzip the HugeRTE.zip inside www/marvin/HugeRTE

@@ -13,7 +13,7 @@
     <img src="ressources/anatella.svg" height="25px"/> Workflows</a>
 <a href="glossary.php" class="nav-item" style="color:#fff; text-decoration:none;">
     <img src="ressources/glossary.svg" width="28px"/> Glossary</a>
-<a href="../lineage/marvin_lineage.html" class="nav-item" style="color:#fff; text-decoration:none;">
+<a href="lineage/lineage.php" class="nav-item" style="color:#fff; text-decoration:none;">
     <img src="ressources/lineage.svg" height="28px"/> Lineage</a>
 <a href="Task.php" class="nav-item" style="color:#fff; text-decoration:none;">
     <img src="ressources/tasks.svg" height="23px"/> Tasks</a>
