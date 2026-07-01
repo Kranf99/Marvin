@@ -6,7 +6,7 @@
   <br clear="left" />
 </p>
 
-Data Governance Solution - **Automated**, Agnostic (and Self-documenting if used from Anatella/TIMi)
+Data Governance & Lineage Solution - **Automated**, Agnostic (and Self-documenting if used from Anatella/TIMi)
 
 -- **work in progress**
 
