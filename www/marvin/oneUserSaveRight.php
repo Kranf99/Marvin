@@ -28,6 +28,7 @@ $idDpt  = intval($data['iddept']);
 $rights = intval($data['rights']);
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 
 if (!$isSuperAdmin)
 {
@@ -72,6 +73,8 @@ if ($rights == 0)
     }
 }
 
+require_once '_pe_addEvent.php';
+addEvent($db,$myid,'Change rights of','users',0);
 $db->close();
 
 header('Content-Type: application/json');

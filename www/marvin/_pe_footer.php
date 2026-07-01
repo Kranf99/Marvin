@@ -327,6 +327,8 @@ if (!$idAsset)
 ?>
 let lastMessageId = 0;
 let eventSource = null;
+var allMessagesDiv=[];
+var chatRedrawTimer=null;
 
 function formatTime(date) {
   const year = date.getFullYear();
@@ -344,9 +346,6 @@ function updateConnectionStatus(connected) {
   status.style.color = connected ? '#00ff00' : '#ff0000';
 }
 
-var allMessagesDiv=[];
-var chatRedrawTimer=null;
-
 function redrawChatWindow()
 {
   for(;;)
@@ -361,6 +360,10 @@ function redrawChatWindow()
 
 function displayMessage(msg) 
 {
+  if (msg.id <= lastMessageId) 
+    return;
+  lastMessageId = msg.id;
+
   const messagesContainer = document.getElementById('messages');
   const messageDiv = document.createElement('div');
   
@@ -395,10 +398,6 @@ echo ' const currentUser='.$myid.';';
   chatRedrawTimer= setTimeout(redrawChatWindow,50);
 
   messagesContainer.appendChild(messageDiv);
-  
-  if (msg.id > lastMessageId) {
-      lastMessageId = msg.id;
-  }
 }
 
 async function sendMessage() {
@@ -418,10 +417,10 @@ echo ' const currentUserID='.$myid.';'.
       body: JSON.stringify({message: text, idasset: currentAsset})
     });
     const data = await response.json();
-    if ((data.success)&&(data.id>lastMessageId))
+    if (data.success)
     {
-      lastMessageId=data.id;
-      displayMessage({"iduser":currentUserID,"message":text,"timestamp":formatTime(new Date())});
+      displayMessage({"iduser":currentUserID,"message":text,
+        "timestamp":formatTime(new Date()),"id":data.id});
     }
   } catch (error) {
     console.error('Error sending message:', error);
@@ -443,7 +442,7 @@ echo 'eventSource = new EventSource(`messageStream.php?after=${lastMessageId}&id
   eventSource.onmessage = function(event) {
     try {
       const msg = JSON.parse(event.data);
-      if (msg.id>lastMessageId) displayMessage(msg);
+      displayMessage(msg);
     } catch (error) {
       console.error('Error parsing message:', error);
     }

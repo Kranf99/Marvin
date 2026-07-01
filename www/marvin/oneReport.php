@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marvin - Storage</title>
+    <title>Marvin - Report</title>
     <link rel="stylesheet" href="ressources/style.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <script>
@@ -50,6 +50,7 @@ if (isset($_REQUEST['newAsset'])) $newAsset=$_REQUEST['newAsset'];
 
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $db->exec("attach database '".__DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
 $stmt = $db->prepare(
         'SELECT a.*, s.name as servername, u.name as ownername, u.email as owneremail, d.icon as icon, d.name as dptname'.
@@ -274,26 +275,8 @@ $results->finalize();
 </div>
 </div>
 
-<div id="ActivityTab" class="tabcontent" style="padding: 6px 6px;">
-
-
-                        <h3>Recent Activity from others</h3>
-<?php
-//$db->exec("attach database '".__DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;"); // already done above
-$results = $db->query("SELECT a.*, u.name as username, u.imagefile as ifile from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid where userid<>".$myid);
-
-while(1)
-{
-	$row=$results->fetchArray(SQLITE3_ASSOC);
-	if (!$row) break;
-    echo '<div class="activity-item"><img src="'.defaultAvatarImage($row["ifile"]).
-        '" class="activity-avatar"/><div class="activity-content"><div class="activity-title">'.
-        $row['description'].'</div><div class="activity-subtitle">'.
-        $row['username'].' edited '.$row['name'].
-        '</div><div class="activity-time">'.getHumanElapsedTime($row['timestamp']).
-        '</div></div></div>'."\n";
-}
-$results->finalize();
+<?php 
+require_once '_pe_recentActivity.php';
 $db->close();
 ?>
 </div>

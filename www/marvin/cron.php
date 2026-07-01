@@ -247,7 +247,7 @@ for(;;)
     }
     $stmt->close();
 
-    // find unprocessed non-REPORTING and non-STORAGE changes inside ASSETSCHANGES older than 3 minutes
+    // find unprocessed WORKFLOW changes inside ASSETSCHANGES older than 3 minutes
     $stmt = $db->prepare(
         ' SELECT a.*,u.name as uname'.
         ' FROM AssetsChanges a'.
@@ -264,12 +264,12 @@ for(;;)
             $needCheck= (int)$r['needCheck'];
             if ($needCheck)
             {
-                $tname='Validate changes from '.htmlspecialchars($r['uname']).' on '.htmlspecialchars($rr['name_old']);
+                $tname='Validate changes from '.htmlspecialchars($r['uname']).' on '.htmlspecialchars($r['name_old']);
             } else
             {
-                $tname='Notification: User '.htmlspecialchars($r['uname']).' changed '.htmlspecialchars($rr['name_old']);
+                $tname='Notification: User '.htmlspecialchars($r['uname']).' changed '.htmlspecialchars($r['name_old']);
             }
-            $taskId=createTask($db,0,$tname,$r,$now,'Assets');
+            $taskId=createTask($db,$needCheck?530:630,$tname,$r,$now,'Assets');
             echo "[$now] Created task #$taskId \n";
         } else $arrayID_w[]=$aid;
         $r = $groups->fetchArray(SQLITE3_ASSOC);
@@ -333,6 +333,7 @@ for(;;)
         if ($debug) echo "[$now] About to close\n";
         sleep(30);
         $db = new SQLite3(__DIR__ . '/../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+        $db->busyTimeout(5000);
         $v1=$db->querySingle("Select changeId from AssetsChanges where taskId IS NULL limit 1");
         $v2=$db->querySingle("Select changeId from GlossaryChanges where taskId IS NULL limit 1");
         $v3=$db->querySingle("Select changeId from serversChanges where taskId IS NULL limit 1");

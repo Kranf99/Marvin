@@ -5,6 +5,7 @@ if ( !isset( $_SESSION['id'] ) ) {
     exit;
 }
 $myid= $_SESSION['id'];
+date_default_timezone_set('Europe/Brussels');
 
 $ida=-1;
 if (isset($_REQUEST['idasset'])) $ida=(int)$_REQUEST['idasset'];
@@ -14,6 +15,7 @@ else
 	exit();
 }
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 
 $stmtTask = $db->prepare('SELECT changeId, changeTable, taskType FROM Tasks WHERE id = :ida');
 $stmtTask->bindValue(':ida', $ida, SQLITE3_INTEGER);
@@ -43,6 +45,9 @@ if ($task && !empty($task['changeId']))
         }
     }
 }
+
+require_once '_pe_addEvent.php';
+addEvent($db,$myid,'Delete','Tasks',$ida);
 
 $stmt = $db->prepare('DELETE FROM likesTasks WHERE idassetorcolumn = :p1');
 $stmt->bindValue(':p1', $ida);

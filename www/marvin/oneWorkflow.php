@@ -46,7 +46,7 @@ $idAsset=-1;
 if (isset($_REQUEST['idasset'])) $idAsset=$_REQUEST['idasset'];
 else
 {
-    echo 'Error: No Asset specified.';
+    echo 'Error: No workflow specified.';
     die;
 }
 $newAsset=0;
@@ -54,14 +54,22 @@ if (isset($_REQUEST['newAsset'])) $newAsset=$_REQUEST['newAsset'];
 
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $db->exec("attach database '".__DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
-$stmt = $db->prepare('select a.*, s.name as servername, u.name as ownername, u.email as owneremail from Assets a LEFT JOIN Servers s ON a.idserver=s.id LEFT JOIN Users u ON a.idowner=u.id where a.id=:ids');
+$stmt = $db->prepare(
+    'select a.*, s.name as servername, u.name as ownername, u.email as owneremail'.
+    ' ,COALESCE(ac.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(ac.longDescription,a.longDescription) as longDescription_new,COALESCE(ac.schema,a.schema) as schema_new,COALESCE(ac.tags,a.tags) as tags_new'.
+    ' from Assets a'.
+    ' LEFT JOIN Servers s ON a.idserver=s.id'.
+    ' LEFT JOIN Users u ON a.idowner=u.id'.
+    ' LEFT JOIN AssetsChanges ac ON ac.rowId=a.id AND ac.changedByUserId='.$myid.
+    ' where a.id=:ids');
 $stmt->bindValue(':ids',$idAsset);
 $results=$stmt->execute();
 $rowAsset=$results->fetchArray(SQLITE3_ASSOC);
 if (!$rowAsset) 
 {
-    echo 'Error: Asset '.$idAsset.' not found';
+    echo 'Error: Workflow '.$idAsset.' not found';
     die;
 }
 echo getIcon($rowAsset['category']).' Workflow ';
@@ -89,7 +97,8 @@ echo '/ <a href="?idasset='.$idAsset.'">'.$rowAsset['name'].'</a>'
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname="shortDescription" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['shortDescription'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['shortDescription']!=$rowAsset['shortDescription_new']).
+    '">'.$rowAsset['shortDescription_new'].'</div>';    
 ?>            
         </div>
     </div>
@@ -98,7 +107,8 @@ echo '<div class="editable" data-columnname="shortDescription" data-tablename="A
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname2="schema" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['schema'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['schema']!=$rowAsset['schema_new']).
+    '">'.$rowAsset['schema_new'].'</div>';
 ?>            
         </div>
     </div>
@@ -107,7 +117,8 @@ echo '<div class="editable" data-columnname2="schema" data-tablename="Assets" da
         <div class="text-input-style">
 <?php
 echo '<div class="editable" data-columnname2="tags" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['tags'].'</div>';
+    $idAsset.'" data-highlight="'.($rowAsset['tags']!=$rowAsset['tags_new']).
+    '">'.$rowAsset['tags_new'].'</div>';
 ?>
         </div>
     </div>
@@ -138,7 +149,7 @@ echo '<div class="status-buttons" data-columnname="status" data-tablename="Asset
         <label>Long Description</label>
 <?php
 echo '<textarea id="editorMain" rows="1" data-columnname="longDescription" data-tablename="Assets" data-id="'.
-    $idAsset.'">'.$rowAsset['longDescription'].'</textarea></div>';
+    $idAsset.'">'.$rowAsset['longDescription_new'].'</textarea></div>';
 if ($myid!=$rowAsset['idowner'])
 { 
 ?>
@@ -259,26 +270,8 @@ displayIO($sql,'Output');
 </div>
 </div>
 
-<div id="ActivityTab" class="tabcontent" style="padding: 6px 6px;">
-
-
-                        <h3>Recent Activity from others</h3>
-<?php
-//$db->exec("attach database '".__DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;"); // already done above
-$results = $db->query("SELECT a.*, u.name as username, u.imagefile as ifile from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid where userid<>".$myid);
-
-while(1)
-{
-	$row=$results->fetchArray(SQLITE3_ASSOC);
-	if (!$row) break;
-    echo '<div class="activity-item"><img src="'.defaultAvatarImage($row["ifile"]).
-        '" class="activity-avatar"/><div class="activity-content"><div class="activity-title">'.
-        $row['description'].'</div><div class="activity-subtitle">'.
-        $row['username'].' edited '.$row['name'].
-        '</div><div class="activity-time">'.getHumanElapsedTime($row['timestamp']).
-        '</div></div></div>'."\n";
-}
-$results->finalize();
+<?php 
+require_once '_pe_recentActivity.php';
 $db->close();
 ?>
 </div>

@@ -31,6 +31,7 @@ if (isset($_REQUEST['newAsset'])) $newAsset=$_REQUEST['newAsset'];
 
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $db->exec("attach database '" . __DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
 $stmt = $db->prepare('select a.*, u.name as ownername, u.email as owneremail from Tasks a'.
         ' LEFT JOIN Users u ON a.assignedToUserId=u.id '.
@@ -134,15 +135,20 @@ if (($tt>500)&&($rowAsset['changeId']!=null))
 {
     if ($rowAsset['changeTable']=='Assets')
     {
-        $sql=' SELECT a.*, c.changeId as cchangeId, c.name as cname,c.name_old as cname_old, '.
-            ' c.shortDescription as cshortDescription, c.shortDescription_old as cshortDescription_old,'.
-            ' c.status as cstatus, c.status_old as cstatus_old,'.
-            ' c.tags as ctags, c.tags_old as ctags_old,'.
-            ' u.name as uname, u.email as uemail FROM AssetsChanges a ';
-        if (($tt==510)||($tt==610))
-            $sql.=' LEFT JOIN KPIChanges c ON c.fromAssetChangeId=a.changeId';
-        else if (($tt==520)||($tt==620))
-            $sql.=' LEFT JOIN columnsChanges c ON c.fromAssetChangeId=a.changeId';
+        if (($tt==510)||($tt==610)||($tt==520)||($tt==620))
+        {
+            $sql=' SELECT a.*, c.changeId as cchangeId, c.name as cname,c.name_old as cname_old, '.
+                ' c.shortDescription as cshortDescription, c.shortDescription_old as cshortDescription_old,'.
+                ' c.status as cstatus, c.status_old as cstatus_old,'.
+                ' c.tags as ctags, c.tags_old as ctags_old,'.
+                ' u.name as uname, u.email as uemail FROM AssetsChanges a ';
+            if (($tt==510)||($tt==610))
+                $sql.=' LEFT JOIN KPIChanges c ON c.fromAssetChangeId=a.changeId';
+            else if (($tt==520)||($tt==620))
+                $sql.=' LEFT JOIN columnsChanges c ON c.fromAssetChangeId=a.changeId';
+        } else
+            $sql=' SELECT a.*,'.
+                 ' u.name as uname, u.email as uemail FROM AssetsChanges a ';
         $sql.=' LEFT JOIN dbu.users u on u.id=a.changedByUserId'.
             ' WHERE a.changeId=:changeID';
     //    echo $sql;
@@ -174,17 +180,20 @@ if (($tt>500)&&($rowAsset['changeId']!=null))
                         $table.'</tbody></table>';
             }
 
-            $ctable='';
-            while ($rr)
+            if (($tt==510)||($tt==610)||($tt==520)||($tt==620))
             {
-                $ctable.=getColumnChanges($rr);
-                $rr=$results->fetchArray(SQLITE3_ASSOC);
-            }
-            if ($ctable!='')
-            {
-                $txt.='<h2 style="font-size:16px;color:#475569;margin:20px 0 10px;">Changed KPI definition(s):</h2>'.
-                        '<table class="table-asset table-view"><thead class="thead-asset"><tr><th class="th-asset">Column Name</th><th class="th-asset">Field</th><th class="th-asset">Old Value</th><th class="th-asset">New Value</th></tr></thead><tbody>'."\n".
-                        $ctable.'</tbody></table>';
+                $ctable='';
+                while ($rr)
+                {
+                    $ctable.=getColumnChanges($rr);
+                    $rr=$results->fetchArray(SQLITE3_ASSOC);
+                }
+                if ($ctable!='')
+                {
+                    $txt.='<h2 style="font-size:16px;color:#475569;margin:20px 0 10px;">Changed KPI definition(s):</h2>'.
+                            '<table class="table-asset table-view"><thead class="thead-asset"><tr><th class="th-asset">Column Name</th><th class="th-asset">Field</th><th class="th-asset">Old Value</th><th class="th-asset">New Value</th></tr></thead><tbody>'."\n".
+                            $ctable.'</tbody></table>';
+                }
             }
         }
     } else if ($rowAsset['changeTable']=='Glossary')
@@ -271,16 +280,15 @@ echo '<div class="status-buttons" data-columnname="urgency" data-tablename="Task
             </div>
         </div>
     </div>
-    <div class="edit-field">
-<?php } ?>
-        <label>Description</label>
-        <div class="text-input-style">
-<?php
-if (($tt<500)||($rowAsset['changeId']==null)) echo $rowAsset['description'];
-else echo $txt;
+<?php } 
+if ($tt>=500)
+{
+    echo '<div class="edit-field"><label>Description</label><div class="text-input-style">';
+    if ($rowAsset['changeId']==null) echo $rowAsset['description'];
+    else echo $txt;
+    echo '</div></div></div>';
+}
 ?>
-        </div>
-    </div>
     <div>
         <div class="status-row" style="padding-bottom:10px">
             <label class="status-label">Status</label>
@@ -405,24 +413,8 @@ $results->finalize();
 </div>
 </div>
 
-<div id="ActivityTab" class="tabcontent" style="padding: 6px 6px;">
-
-<h3>Recent Activity from others</h3>
-<?php
-$results = $db->query("SELECT a.*, u.name as username, u.imagefile as ifile from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid where userid<>".$myid);
-
-while(1)
-{
-	$row=$results->fetchArray(SQLITE3_ASSOC);
-	if (!$row) break;
-    echo '<div class="activity-item"><img src="'.defaultAvatarImage($row["ifile"]).
-        '" class="activity-avatar"/><div class="activity-content"><div class="activity-title">'.
-        $row['description'].'</div><div class="activity-subtitle">'.
-        $row['username'].' edited '.$row['name'].
-        '</div><div class="activity-time">'.getHumanElapsedTime($row['timestamp']).
-        '</div></div></div>'."\n";
-}
-$results->finalize();
+<?php 
+require_once '_pe_recentActivity.php';
 $db->close();
 ?>
 </div>

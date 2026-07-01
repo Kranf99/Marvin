@@ -19,6 +19,7 @@ if (isset($_SESSION['LAST_ACTIVITY']) &&
 }
 $_SESSION['LAST_ACTIVITY'] = $servertime;
 $db = new SQLite3(__DIR__ .'/../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 //$db->exec("attach database '".getcwd()."/db/users.sqlite' as uu;");
 $resultUser = $db->querySingle('SELECT * FROM users WHERE id='.$myid,true);
 $db->close();

@@ -26,6 +26,8 @@ if (!array_key_exists($tablename,$checkCN))
 $tablelike=$checkCN[$tablename];
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
+
 $row=$db->querySingle('SELECT liketype from '.$tablelike.' where iduser='.$myid.' AND idassetorcolumn='.$data['id']);
 if ($row==1)
 {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marvin - Storage</title>
+    <title>Marvin - Glossary</title>
     <link rel="stylesheet" href="ressources/style.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <?php require "_pe_headerScripts.php"; ?>
@@ -31,6 +31,7 @@ require "_pe_starter.php";
 
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 
 $hiddenUrlParameters='';
 $sql='SELECT a.*, la.liketype';
@@ -76,7 +77,7 @@ for($i=0;$i<count($array_rows);$i++)
         echo " highlighted";
     echo '"><td style=""width:0"></td><td>'.
             '<a style="text-decoration:none;" href="glossaryDelete.php?idasset='.
-            $row['id'].'"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/></a>'.
+            $row['id'].'" onclick="return confirm(\'Are you sure you want to delete this Word from the Glossary?\')"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/></a>'.
             '<a class="history-title" style="text-decoration:none;" href="glossaryOneDef.php?idasset='.
             $row['id'].'">'.htmlspecialchars($row['name']).'</a></td><td><div class="editable" data-id="'.$row['id'].
         	'" data-columnname="shortDescription" data-tablename="Glossary">'.
@@ -104,24 +105,10 @@ $results->finalize();
 <div class="tab">
 <button class="tablinks" onclick="openTab(event,'ActivityTab')" id="defaultTab">Activity</button>
 </div>
-<div id="ActivityTab" class="tabcontent" style="padding: 6px 6px;">
-<h3>Recent Activity from others</h3>
-<?php
-$db->exec("attach database '" . __DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
-$results = $db->query("SELECT a.*, u.name as username, u.imagefile as ifile from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid where userid<>".$myid);
 
-while(1)
-{
-	$row=$results->fetchArray(SQLITE3_ASSOC);
-	if (!$row) break;
-    echo '<div class="activity-item"><img src="'.defaultAvatarImage($row["ifile"]).
-        '" class="activity-avatar"/><div class="activity-content"><div class="activity-title">'.
-        $row['description'].'</div><div class="activity-subtitle">'.
-        $row['username'].' edited '.$row['name'].
-        '</div><div class="activity-time">'.getHumanElapsedTime($row['timestamp']).
-        '</div></div></div>'."\n";
-}
-$results->finalize();
+<?php 
+$db->exec("attach database '" . __DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
+require_once '_pe_recentActivity.php';
 $db->close();
 ?>
 </div>

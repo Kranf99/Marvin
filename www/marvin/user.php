@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marvin - Storage</title>
+    <title>Marvin - Users</title>
     <link rel="stylesheet" href="ressources/style.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <script>
@@ -44,6 +44,7 @@ if (isset($_REQUEST['idDpt'])) $idDpt=$_REQUEST['idDpt'];
 
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 ?>
 <!-- Content -->
 <div class="content">

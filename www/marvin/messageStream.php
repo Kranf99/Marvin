@@ -16,10 +16,9 @@ ini_set('max_execution_time', 0);
 
 // Database setup
 $db = new SQLite3('..\..\db\chatForPush.sqlite',SQLITE3_OPEN_READWRITE);
-
+$db->busyTimeout(5000); // Wait up to 5 seconds if database is locked
 // Enable WAL mode for better concurrent access
 $db->exec('PRAGMA journal_mode=WAL');
-$db->busyTimeout(5000); // Wait up to 5 seconds if database is locked
 
 $lastId = isset($_REQUEST['after']) ? intval($_REQUEST['after']) : 0;
 $idAsset = isset($_REQUEST['idasset']) ? intval($_REQUEST['idasset']) : 0;

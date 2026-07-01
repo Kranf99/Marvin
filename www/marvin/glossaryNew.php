@@ -16,6 +16,7 @@ else
 date_default_timezone_set('Europe/Brussels');
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $stmt=$db->prepare('select id, name from Glossary where toDelete=0 and lower(name)=:name');
 $stmt->bindValue(':name',strtolower($word));
 $results=$stmt->execute();
@@ -41,7 +42,11 @@ $stmt->bindValue(':mydate',date('Ymd H:i:s'));
 $stmt->execute();
 $newId = $db->lastInsertRowID();
 
-require 'glossaryMakeFile.php';
+require_once 'glossaryMakeFile.php';
+
+require_once '_pe_addEvent.php';
+addEvent($db,$myid,'Add word "'.$word.'"','Glossary',0);
+
 $db->close();
 //echo $content;
 header('Location: glossaryOneDef.php?idasset='.$newId.'&newAsset=1');

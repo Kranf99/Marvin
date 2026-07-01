@@ -110,21 +110,11 @@ function toggleMobileMenu() {
 <?php
 function getIcon($at)
 {
-    if ($at<100) return '📈';
+    if ($at<100) return '<img src="ressources/reports.svg" height="40px" style="vertical-align: middle;"/>';
     if ($at<120) return '<img src="ressources/file.svg" height="40px" style="vertical-align: middle;"/>';
     if ($at<200) return '<img src="ressources/database.svg" height="40px" style="vertical-align: middle;"/>';
-    if ($at<300) return '<img src="ressources/anatella.svg" height="40px" style="vertical-align: middle;"/>';
-    if ($at<400) 
-    {
-        if ($at<320) return '📋';
-        if ($at<340) return '🔴';
-        if ($at<360) return '🟡';
-        if ($at<380) return '🟢';
-        return '📐'; // 📌';
-    }
-    if ($at<500) return '📖';
-    if ($at<600) return '👥';
-    return '?';
+    //if ($at<500) 
+    return '<img src="ressources/anatella.svg" height="40px" style="vertical-align: middle;"/>';
 }
 
 function getHumanElapsedTime($timestamp)

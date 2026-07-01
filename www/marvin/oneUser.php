@@ -21,6 +21,7 @@ if ($idUser == 0)
 }
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $isAdmin = (bool) $db->querySingle('SELECT 1 FROM userDepartmentRights WHERE idUser='.$myid.' AND rights>=8 LIMIT 1');
 
 if (!$isSuperAdmin && !$isAdmin && $idUser != $myid)
@@ -30,6 +31,7 @@ if (!$isSuperAdmin && !$isAdmin && $idUser != $myid)
 }
 
 $dbu = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READONLY);
+$dbu->busyTimeout(5000);
 $targetUser = $dbu->querySingle('SELECT * FROM users WHERE id='.$idUser, true);
 $dbu->close();
 if (!$targetUser)

@@ -6,6 +6,8 @@ if (!isset($_SESSION['id'])) {
     exit;
 }
 $myid = (int)$_SESSION['id'];
+require_once '_pe_addEvent.php';
+
 $taskId=-1;
 if (isset($_REQUEST['idasset'])) $taskId=(int)$_REQUEST['idasset'];
 else
@@ -167,6 +169,8 @@ if ($action === 'accept')
     $stmtTask->bindValue(':txt', $txt);
     $stmtTask->bindValue(':tid', $taskId);
     $stmtTask->execute();
+
+    addEvent($db,$myid,'Accept changes from','Tasks',$taskId);
 } else // REJECT
 {
     $stmtTask = $db->prepare("UPDATE Tasks SET changeId=NULL, description=:txt, completion=1, dateFinished=:now WHERE id=:tid");
@@ -174,6 +178,7 @@ if ($action === 'accept')
     $stmtTask->bindValue(':txt', $txt);
     $stmtTask->bindValue(':tid', $taskId);
     $stmtTask->execute();
+    addEvent($db,$myid,'Reject changes from','Tasks',$taskId);
 }
 
 $stmtStatus = $db->prepare("DELETE FROM $changesTable WHERE changeId=:tid");

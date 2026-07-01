@@ -22,6 +22,7 @@ $iddept = 0;
 if (isset($_REQUEST['iddept'])) $iddept = (int)$_REQUEST['iddept'];
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 if ($isSuperAdmin) 
     $sql='SELECT id, name, icon FROM departments ORDER BY sortorder ASC';
 else 

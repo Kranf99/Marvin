@@ -16,12 +16,14 @@ $isInput = ($_REQUEST['workflowDirection'] === 'Input') ? 1 : 0;
 
 // superAdmin check
 $dbUsers = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READONLY);
+$dbUsers->busyTimeout(5000);
 $isSuperAdmin = (bool)$dbUsers->querySingle('SELECT superadmin FROM users WHERE id=' . $myid);
 $dbUsers->close();
 
 date_default_timezone_set('Europe/Brussels');
 $now = date('Ymd H:i:s');
 $db  = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $db->exec('PRAGMA journal_mode=WAL;');
 
 if ($isSuperAdmin) {

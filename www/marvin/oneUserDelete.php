@@ -7,6 +7,7 @@ if ( !isset( $_SESSION['id'] ) ) {
 $myid= $_SESSION['id'];
 
 $db = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $resultUser = $db->querySingle('SELECT * FROM users WHERE id='.$myid, true);
 $isSuperAdmin = ($resultUser['superadmin'] == 1);
 

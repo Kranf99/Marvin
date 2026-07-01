@@ -27,8 +27,8 @@ $nowdate=new DateTime();
 $nowdate=$nowdate->format('Y-m-d H:i:s');
 
 $db = new SQLite3('..\..\db\chat.sqlite',SQLITE3_OPEN_READWRITE);
-$db->exec('PRAGMA journal_mode=WAL');
 $db->busyTimeout(5000); // Wait up to 5 seconds if database is locked
+$db->exec('PRAGMA journal_mode=WAL');
 $stmt = $db->prepare('INSERT INTO messages (idasset,iduser,message,timestamp) VALUES (:idasset,:iduser,:message,:ts)');
 $stmt->bindValue(':idasset', $data['idasset'], SQLITE3_INTEGER );
 $stmt->bindValue(':iduser', $myid, SQLITE3_INTEGER );
@@ -42,12 +42,13 @@ $db->close();
 
 // already done inside checkSession:
 $db = new SQLite3('..\..\db\MarvinUsers.sqlite',SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $resultUserName = $db->querySingle('SELECT name FROM users WHERE id='.$myid);
 $db->close();
 
 $db = new SQLite3('..\..\db\chatForPush.sqlite',SQLITE3_OPEN_READWRITE);
-$db->exec('PRAGMA journal_mode=WAL');
 $db->busyTimeout(5000); // Wait up to 5 seconds if database is locked
+$db->exec('PRAGMA journal_mode=WAL');
 $stmt = $db->prepare('INSERT INTO messages (id,idasset,iduser,message,timestamp,user) VALUES (:id,:idasset,:iduser,:message,:ts,:user)');
 $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
 $stmt->bindValue(':idasset', $data['idasset'], SQLITE3_INTEGER );

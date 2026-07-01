@@ -54,22 +54,44 @@ require "_pe_starter.php";
                     </div>
 
                     <!-- History -->
-                    <div class="history-section">
+                    <div class="history-section" style="overflow-x: auto;">
                         <h2>Your History</h2>
 <?php
 date_default_timezone_set('Europe/Brussels');
 
-$db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
-$results = $db->query("SELECT * from Activities where userid=".$myid);
+function getIconHome($table,$at)
+{
+    if ($table=="Assets") return getIcon($at);
+    if ($table=="Tasks")
+    {
+        if ($at<320) return '<font size="38px">📋</font>';
+        if ($at<340) return '<font size="38px">🔴</font>';
+        if ($at<360) return '<font size="38px">🟡</font>';
+        if ($at<380) return '<font size="38px">🟢</font>';
+        return '<font size="38px">📐</font>';
+    }
+    if ($table=="Glossary")
+        return '<img src="ressources/glossary.svg" height="40px" style="vertical-align: middle;"/>';
+    if ($table=="User")
+        return '<img src="ressources/users.svg" height="40px" style="vertical-align: middle;"/>';
+    return '?';
+}
 
-while(1)
+$db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
+$db->exec("attach database '" . __DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
+$results = $db->query('SELECT a.*, u.name as username, u.imagefile as ifile'.
+    ' from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid '.
+    'where userid='.$myid.' ORDER BY timestamp DESC LIMIT 100');
+
+for($i=0;$i<100;$i++)
 {
 	$row=$results->fetchArray(SQLITE3_ASSOC);
 	if (!$row) break;
     echo '<div class="history-item"><div class="history-icon">'.
-         getIcon($row['assetTypeID']).
+         getIconHome($row['tablename'],$row['assetCategory']).
         '</div><div class="history-content"><div class="history-title">'.
-        $row['name'].
+        $row['username'].
         '</div><div class="history-description">'.
         $row['description'].
         '</div></div><div class="history-time">'.
@@ -114,26 +136,8 @@ $results->finalize();
   <button class="tablinks" onclick="openTab(event,'ActivityTab')" id='defaultTab'>Activity</button>
 </div>
 
-<div id="ActivityTab" class="tabcontent" style="padding: 6px 6px;">
-
-                        <h3>Recent Activity from others</h3>
-<?php
-$db->exec("attach database '" . __DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
-$results = $db->query('SELECT a.*, u.name as username, u.imagefile as ifile from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid where userid<>'
-    .$myid.' ORDER BY timestamp DESC');
-
-while(1)
-{
-	$row=$results->fetchArray(SQLITE3_ASSOC);
-	if (!$row) break;
-    echo '<div class="activity-item"><img src="'.defaultAvatarImage($row["ifile"]).
-        '" class="activity-avatar"/><div class="activity-content"><div class="activity-title">'.
-        $row['description'].'</div><div class="activity-subtitle">'.
-        $row['username'].' edited '.$row['name'].
-        '</div><div class="activity-time">'.getHumanElapsedTime($row['timestamp']).
-        '</div></div></div>'."\n";
-}
-$results->finalize();
+<?php 
+require_once '_pe_recentActivity.php';
 $db->close();
 ?>
                     </div>

@@ -250,6 +250,18 @@ body {
     width: 320px;
     background: white;
     padding: 5px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* home.php wraps the tab area in its own sidebar-section (below the welcome message);
+   let that section fill the remaining height so the tab content can size against it */
+.sidebar-right > .sidebar-section:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .sidebar-right h3 {
@@ -295,6 +307,12 @@ body {
     margin-bottom: 3px;
 }
 
+.activity-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
 .activity-subtitle {
     font-size: 12px;
     color: #64748b;
@@ -303,7 +321,6 @@ body {
 .activity-time {
     font-size: 11px;
     color: #94a3b8;
-    margin-top: 3px;
 }
 
 .fab {
@@ -863,6 +880,14 @@ input[type="text"], textarea{
 
 .tabcontent {
   animation: fadeEffect 1s; /* Fading effect takes 1 second */
+}
+
+/* Activity feed fills whatever vertical space is left in the sidebar and
+   scrolls independently instead of growing the whole page */
+#ActivityTab {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Go from zero to full opacity */

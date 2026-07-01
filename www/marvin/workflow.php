@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marvin - Storage</title>
+    <title>Marvin - Workflow</title>
     <link rel="stylesheet" href="ressources/style.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <?php require "_pe_headerScripts.php"; ?>
@@ -32,6 +32,7 @@ if ($idserver!=0) $filter.=" and idserver=".$idserver;
 <?php
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 if ($idserver==0) 
 {
     $idAsset=0;
@@ -69,9 +70,25 @@ if ($idserver==0)
 <h2>All Worflows</h2>       
 <?php
 $hiddenUrlParameters='<input type="hidden" name="idserver" value="'.$idserver.'">';
-$sql='SELECT a.*, la.liketype from Assets a '.
-    'LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
-    ' where category=200 '.$filter;
+$sql='SELECT a.*, la.liketype';
+if($isSuperAdmin==1) 
+    $sql.=', 2 as rights'.
+    ',a.name as name_new,a.shortDescription as shortDescription_new'.
+    ' from Assets a'.
+    ' LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
+    ' LEFT JOIN departments d ON a.idDepartment=d.id'.
+    ' where a.category>=200 '.$filter;
+else
+{
+    $sql.=', ud.rights as rights'.
+    ',COALESCE(ac.name,a.name) as name_new,COALESCE(ac.shortDescription,a.shortDescription) as shortDescription_new,COALESCE(ac.status,a.status) as status_new'.
+    ' from Assets a'.
+    ' LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
+    ' LEFT JOIN departments d ON a.idDepartment=d.id'.
+    ' LEFT JOIN AssetsChanges ac ON ac.rowId=a.id AND ac.changedByUserId='.$myid.
+    ' INNER JOIN userDepartmentRights ud ON a.idDepartment=ud.idDepartment and ud.idUser='.$myid.
+    ' where a.category>=200 '.$filter;
+}
 $filterOnAssetTable=true;
 require "_pe_filters.php";
 ?>
@@ -94,14 +111,25 @@ require "_pe_filters.php";
 for($i=0;$i<count($array_rows);$i++)
 {
 	$row=$array_rows[$i];
-    echo '<tr class="tr-asset"><td class="history-icon" style="text-align: center;">'.
+    echo '<tr class="tr-asset ';
+    if (($isSuperAdmin==0)&&(
+        ($row['name']!=$row['name_new'])||
+        ($row['shortDescription']!=$row['shortDescription_new'])||
+        ($row['status']!=$row['status_new'])))
+        echo ' highlighted';
+    echo '"><td class="history-icon" style="text-align: center;">'.
             getIcon($row['category']).'</td><td><a style="text-decoration:none;" href="workFlowDelete.php?idasset='.
             $row['id'].'"><img class="deleteicon" src="ressources/delete.svg" height="20px" style="vertical-align: middle; padding-right:5px;"/></a>'.
             '<a class="history-title" style="text-decoration:none;" href="oneWorkflow.php?idasset='.
-            $row['id'].'">'.htmlspecialchars($row['name']).'</a></td><td><div class="editable" data-id="'.$row['id'].
+            $row['id'].'">'.htmlspecialchars($row['name_new']).'</a></td><td>';
+    if ($row['rights']>=2)
+        echo '<div class="editable" data-id="'.$row['id'].
         	'" data-columnname="shortDescription" data-tablename="Assets">'.
-        	($row['shortDescription']).' </div></td><td style="text-align: center;">'.
-            getStatusDisplay($row['status']).'</td><td style="width: 80px;"><div class="popularity-bar">'.
+        	($row['shortDescription_new']).' </div>';
+    else
+        echo $row['shortDescription'];
+    echo '</td><td style="text-align: center;">'.
+            getStatusDisplay($row['status_new']).'</td><td style="width: 80px;"><div class="popularity-bar">'.
             '<div class="popularity-fill" style="width: '.$row['popularity'].
             '%"></div></div></td><td style="text-align: center;">'.
             '<div onclick="addlike(this,'.$row['id'].',\'Assets\')">';
@@ -144,24 +172,9 @@ if ($idAsset>0)
   echo '<button class="tablinks" onclick="openTab(event,\'ActivityTab\')" id="defaultTab">Activity</button></div>';
 ?>
 
-<div id="ActivityTab" class="tabcontent" style="padding: 6px 6px;">
-<h3>Recent Activity from others</h3>
-<?php
+<?php 
 $db->exec("attach database '" . __DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
-$results = $db->query('SELECT a.*, u.name as username, u.imagefile as ifile from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid where userid<>'.$myid);
-
-while(1)
-{
-	$row=$results->fetchArray(SQLITE3_ASSOC);
-	if (!$row) break;
-    echo '<div class="activity-item"><img src="'.defaultAvatarImage($row["ifile"]).
-        '" class="activity-avatar"/><div class="activity-content"><div class="activity-title">'.
-        $row['description'].'</div><div class="activity-subtitle">'.
-        $row['username'].' edited '.$row['name'].
-        '</div><div class="activity-time">'.getHumanElapsedTime($row['timestamp']).
-        '</div></div></div>'."\n";
-}
-$results->finalize();
+require_once '_pe_recentActivity.php';
 $db->close();
 ?>
 </div>

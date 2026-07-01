@@ -75,6 +75,7 @@ if (!move_uploaded_file($file['tmp_name'], $targetPath))
 }
 
 $db = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $targetUser = $db->querySingle('SELECT imageFile FROM users WHERE id='.$idUser, true);
 $db->close();
 
@@ -82,6 +83,7 @@ if ($targetUser && $targetUser['imageFile'] != '')
     @unlink($targetUser['imageFile']);
 
 $db = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $stmt = $db->prepare('UPDATE users SET imageFile = :p1 WHERE id = :p2');
 $stmt->bindValue(':p1', $targetPath);
 $stmt->bindValue(':p2', $idUser);

@@ -19,7 +19,12 @@ else
 	header('Location: oneReport.php?edit=1&'.http_build_query($params));
 	exit();
 }
+require_once '_pe_addEvent.php';
+
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
+addEvent($db,$myid,'Change ','KPI',$idkpi);
+
 $stmt=$db->prepare('delete from KPI WHERE id = :p1');
 $stmt->bindValue(':p1',$idkpi);
 $stmt->execute();

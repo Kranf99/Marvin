@@ -14,6 +14,7 @@
 require "_pe_starter.php";
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $isAdmin = (bool) $db->querySingle('SELECT 1 FROM userDepartmentRights WHERE idUser='.$myid.' AND rights>=8 LIMIT 1');
 $db->close();
 

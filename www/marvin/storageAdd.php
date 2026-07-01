@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marvin - Storage</title>
+    <title>Marvin - Add Storage</title>
     <link rel="stylesheet" href="ressources/style.css">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
@@ -38,6 +38,7 @@ require "_pe_starter.php";
 <div id="form-dpt" class="edit-field" style="display:none">
 <?php
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 if ($isSuperAdmin) 
     $sql='SELECT id, name, icon FROM departments ORDER BY sortorder ASC';
 else 

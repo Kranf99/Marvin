@@ -27,6 +27,7 @@ else if ($priority == 'Compute Governance KPI')  { $taskType = 258; $urgency = 0
 date_default_timezone_set('Europe/Brussels');
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $stmt = $db->prepare(
     'INSERT INTO Tasks(name,assignedToUserId,requestedByUserId,dateCreated,dateUpdated,status,urgency,taskType,completion,rating)'.
     ' VALUES (:name,:myid,:myid,:mydate,:mydate,0,:urgency,:taskType,0,0)');
@@ -37,6 +38,10 @@ $stmt->bindValue(':urgency',  $urgency);
 $stmt->bindValue(':taskType', $taskType);
 $stmt->execute();
 $newId = $db->lastInsertRowID();
+
+require_once '_pe_addEvent.php';
+addEvent($db,$myid,'Add','Tasks',$newId);
+
 $db->close();
 header('Location: oneTask.php?idasset='.$newId.'&newAsset=1');
 ?>

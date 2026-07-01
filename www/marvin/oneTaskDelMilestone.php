@@ -16,6 +16,7 @@ else
 	exit();
 }
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $stmt=$db->prepare('delete from Milestones WHERE id = :p1');
 $stmt->bindValue(':p1',$idmilestone);
 $stmt->execute();

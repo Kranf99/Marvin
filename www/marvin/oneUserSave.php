@@ -17,6 +17,7 @@ if (!$isSuperAdmin && $idUser != $myid)
 }
 
 $db = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 
 $emailCheck = $db->prepare('SELECT id FROM users WHERE email=:email AND id!=:id and deleted=0');
 $emailCheck->bindValue(':email', $_POST['email']);

@@ -6,13 +6,15 @@ if (!isset($_SESSION['id'])) {
 }
 $myid = (int)$_SESSION['id'];
 
-require_once '_pe_startCRON.php';
 date_default_timezone_set('Europe/Brussels');
+require_once '_pe_startCRON.php';
+require_once '_pe_addEvent.php';
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
 // ── superAdmin check ─────────────────────────────────────────────────────────
 $dbUsers = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READONLY);
+$dbUsers->busyTimeout(5000);
 $isSuperAdmin = (bool)$dbUsers->querySingle('SELECT superadmin FROM users WHERE id=' . $myid);
 $dbUsers->close();
 
@@ -178,7 +180,11 @@ if (array_key_exists($tablename,$changesTableMap))
     if (($isSuperAdmin)||($baseRow['idowner']==$myid))
     {
         $n = applyToMainTable($db, $tablename, $rowId, $cn, $content, $cn2, $content2);
-        if ($n>0) $nChanges=1;
+        if ($n>0) 
+        {
+            $nChanges=1;
+            addEvent($db,$myid,'Changed',$tablename,$rowId);
+        }
     } else
     {
         // Find Latest pending/approved change for this user (no task yet) — used as snapshot base
@@ -278,10 +284,20 @@ if (array_key_exists($tablename,$changesTableMap))
             $stmt->execute();
             $nChanges=$db->changes();
         }
+
+        if ($nChanges)
+        {
+            if (($tablename=='Columns')||($tablename=='KPI'))
+                addEvent($db,$myid,'Submit changes in','Assets',$baseRow['idasset']);
+            else
+                addEvent($db,$myid,'Submit changes in',$tablename,$rowId);
+        }
     }
 } else {
     // non-tracked table: direct update
     $nChanges = applyToMainTable($db, $tablename, $rowId, $cn, $content, $cn2, $content2);
+    if ($nChanges)
+        addEvent($db,$myid,'Changed',$tablename,$rowId);
 }
 
 $db->close();

@@ -21,6 +21,7 @@ if (!$isSuperAdmin && $idUser != $myid)
 }
 unlink($resultUser['imageFile']);
 $db = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $stmt=$db->prepare('UPDATE users SET imageFile = \'ressources/defaultavatar.svg\' WHERE id = :p2');
 $stmt->bindValue(':p2', $idUser);
 $stmt->execute();

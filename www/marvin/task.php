@@ -40,6 +40,7 @@ echo '<div><a class="server-hide-btn deleteicon" style="display:none; text-decor
 <?php
 date_default_timezone_set('Europe/Brussels');
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $db->exec("attach database '" . __DIR__ . "/../../db/MarvinUsers.sqlite' as dbu;");
 if ($dt!="")
 {
@@ -156,23 +157,9 @@ $results->finalize();
 <!-- Tab links -->
 <div class="tab">
 <button class="tablinks" onclick="openTab(event,'ActivityTab')" id="defaultTab">Activity</button></div>
-<div id="ActivityTab" class="tabcontent" style="padding: 6px 6px;">
-<h3>Recent Activity from others</h3>
-<?php
-$results = $db->query("SELECT a.*, u.name as username, u.imagefile as ifile from Activities a LEFT JOIN dbu.Users u ON u.id=a.userid where userid<>".$myid);
 
-while(1)
-{
-	$row=$results->fetchArray(SQLITE3_ASSOC);
-	if (!$row) break;
-    echo '<div class="activity-item"><img src="'.defaultAvatarImage($row["ifile"]).
-        '" class="activity-avatar"/><div class="activity-content"><div class="activity-title">'.
-        $row['description'].'</div><div class="activity-subtitle">'.
-        $row['username'].' edited '.$row['name'].
-        '</div><div class="activity-time">'.getHumanElapsedTime($row['timestamp']).
-        '</div></div></div>'."\n";
-}
-$results->finalize();
+<?php 
+require_once '_pe_recentActivity.php';
 $db->close();
 $idAsset=0;
 ?>

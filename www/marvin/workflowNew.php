@@ -16,6 +16,7 @@ else
 date_default_timezone_set('Europe/Brussels');
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $idserver=$db->querySingle('select id from servers where serverType=\'Workflow\' limit 1');
 
 $stmt=$db->prepare('insert into Assets(name,idowner,dateCreated,dateUpdated,idserver,category,status,popularity,rating) '.
@@ -26,6 +27,10 @@ $stmt->bindValue(':mydate',date('Ymd H:i:s'));
 $stmt->bindValue(':idserver',$idserver);
 $stmt->execute();
 $newId = $db->lastInsertRowID();
+
+require_once '_pe_addEvent.php';
+addEvent($db,$myid,'Add','Assets',$newId);
+
 $db->close();
 header('Location: oneWorkflow.php?idasset='.$newId.'&newAsset=1');
 ?>

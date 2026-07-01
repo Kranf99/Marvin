@@ -5,6 +5,7 @@ if ( !isset( $_SESSION['id'] ) ) {
     exit;
 }
 $myid= $_SESSION['id'];
+date_default_timezone_set('Europe/Brussels');
 
 $name="";
 if (isset($_REQUEST['name'])) $name=$_REQUEST['name'];
@@ -23,8 +24,9 @@ else
 date_default_timezone_set('Europe/Brussels');
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $idserver=$db->querySingle('select id from servers where serverType=\'Reporting\' limit 1');
-$stmt=$db->prepare('insert into Assets(name,department,category,idowner,dateCreated,dateUpdated,status,popularity,rating,idserver) '.
+$stmt=$db->prepare('insert into Assets(name,idDepartment,category,idowner,dateCreated,dateUpdated,status,popularity,rating,idserver) '.
 	' values (:name,:iddept,1,:idowner,:mydate,:mydate,0,0,0,:idserver)' );
 $stmt->bindValue(':name',$name);
 $stmt->bindValue(':iddept',$iddept);
@@ -37,6 +39,10 @@ $newId = $db->lastInsertRowID();
 $stmt=$db->prepare('UPDATE departments SET n=n+1 WHERE id = :iddept');
 $stmt->bindValue(':iddept', $iddept);
 $stmt->execute();
+
+require_once '_pe_addEvent.php';
+addEvent($db,$myid,'Add','Assets',$newId);
+
 $db->close();
 header('Location: oneReport.php?idasset='.$newId.'&newAsset=1');
 ?>

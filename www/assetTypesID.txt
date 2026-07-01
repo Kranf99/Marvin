@@ -126,7 +126,7 @@
 407. Version control integration
 408. CI/CD for pipelines (DEV, UAT, PROD)
 
-200 tasks
+tasks
   same as workflows some examples:
      210. TASK about: Data extraction — from databases, files (CSV, Excel, JSON, XML)
      320. TASK about: Exploratory data analysis (EDA) — profiling for modeling purposes

@@ -19,6 +19,7 @@ else
 date_default_timezone_set('Europe/Brussels');
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 $stmt=$db->prepare('insert into Milestones(idasset,name,shortDescription,dueDate,status,Completion,idowner,dateCreated,dateUpdated) '.
 	' values (:ida,\'_new_Milestone_\',\'\',\'\',0,0,:idowner,:mydate,:mydate)' );
 $stmt->bindValue(':ida',$idasset);

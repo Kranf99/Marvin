@@ -2,6 +2,7 @@
 require '_pe_checkSession.php';
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READONLY);
+$db->busyTimeout(5000);
 $isAdmin = (bool) $db->querySingle('SELECT 1 FROM userDepartmentRights WHERE idUser='.$myid.' AND rights>=8 LIMIT 1');
 $db->close();
 
@@ -22,6 +23,7 @@ if ($name === '' || strpos($email, '@') === false || $password === '')
 }
 
 $dbu = new SQLite3('../../db/MarvinUsers.sqlite', SQLITE3_OPEN_READWRITE);
+$dbu->busyTimeout(5000);
 
 $stmtCheck = $dbu->prepare('SELECT id FROM users WHERE email=:p1 and deleted=0 LIMIT 1');
 $stmtCheck->bindValue(':p1', $email);
@@ -42,6 +44,12 @@ $stmt->execute();
 
 $newId = $dbu->lastInsertRowID();
 $dbu->close();
+
+$db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
+require_once '_pe_addEvent.php';
+addEvent($db,$myid,'Added User in','users',0);
+$db->close();
 
 header('Location: oneUser.php?iduser='.$newId.'&message=OK%20User%20created%20successfully');
 ?>

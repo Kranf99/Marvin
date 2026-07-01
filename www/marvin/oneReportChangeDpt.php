@@ -4,8 +4,11 @@ if ( !isset( $_SESSION['id'] ) ) {
 	header("Location: ./index.html");
     exit;
 }
+$myid= $_SESSION['id'];
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
+
+require_once '_pe_addEvent.php';
 
 $idasset=-1;
 if (isset($data['idasset'])) $idasset=$data['idasset'];
@@ -26,6 +29,7 @@ date_default_timezone_set('Europe/Brussels');
 // todo: validate that the user has the rights to change dpt
 
 $db = new SQLite3('../../db/MarvinDB.sqlite', SQLITE3_OPEN_READWRITE);
+$db->busyTimeout(5000);
 
 $stmt=$db->prepare('select idDepartment from Assets where id=:ida');
 $stmt->bindValue(':ida',$idasset);
@@ -49,6 +53,8 @@ if ($oldIddpt!=$iddept)
 	$stmt->bindValue(':ida', $idasset);
 	$stmt->bindValue(':iddept', $iddept);
 	$stmt->execute();
+
+	addEvent($db,$myid,'Change dpt from','Assets',$idasset);
 }
 $db->close();
 

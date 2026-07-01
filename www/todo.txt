@@ -1,14 +1,26 @@
 Todo:
 =====
-update activity table with all the changes
-search bar
-Edit tags (in storage, reports) with dedicated tag editor
-add Azure/Microsoft Domain SSO
-allow to add some attachments (pdf,png,etc) to a task
-add Anatella API to populate Marvin Automatically
+* Global search bar to search simultaneously inside reports, storage,
+  workflows, Glossary (and Tasks).
+* Finalize the Anatella API to populate Marvin Automatically.
+  Currently, you can already use Anatella's reflection boxes to write directly
+  the required data inside MarvinDB.sqlite but we intend to provide a more
+  "streamlined" experience (i.e.one-click push button to get all governance data
+  injected into Marvin).
+  This API includes two distinct parts:
+   # Server part: the code in php that receives data from Anatella and store it
+                  inside "MarvinDB.sqlite"
+   # Client part: the code inside Anatella that sends data to Marvin.
+* Add Azure/Microsoft Domain SSO to:
+   # check login
+   # populate the Marvin user database (MarvinUsers.sqlite) that contains more
+     details on which asset is accessible to which user.
+* Use a dedicated tag editor to Edit tags (in storage, reports, worklflows) 
+* allow to add some attachments (pdf,png,etc) to a task
 
 Done:
 =====
+* update activity table with all the changes
 * check: accept/reject changes
 * accept/reject changes for status buttons
 * task delete
@@ -21,8 +33,9 @@ Done:
 
 Nice to have:
 =============
-manage servers (workflow servers - reporting servers - file server - database server)
-add servers logos from all Databases/Datalake Vendors
-Create tasks from chat
-add accept/reject changes in WorkflowIO
-add logos from cloud API vendors
+* manage servers (workflow servers - reporting servers - file server - 
+  database server)
+* add servers logos from all Databases/Datalake Vendors
+* add logos from cloud API vendors
+* Create tasks directly from chat
+* add accept/reject changes in WorkflowIO
