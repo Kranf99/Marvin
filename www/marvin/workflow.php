@@ -73,7 +73,7 @@ $hiddenUrlParameters='<input type="hidden" name="idserver" value="'.$idserver.'"
 $sql='SELECT a.*, la.liketype';
 if($isSuperAdmin==1) 
     $sql.=', 2 as rights'.
-    ',a.name as name_new,a.shortDescription as shortDescription_new'.
+    ',a.name as name_new,a.shortDescription as shortDescription_new,a.status as status_new'.
     ' from Assets a'.
     ' LEFT JOIN likesAssets la ON a.id=la.idassetorcolumn and la.iduser='.$myid.
     ' LEFT JOIN departments d ON a.idDepartment=d.id'.
